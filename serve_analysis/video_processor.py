@@ -44,6 +44,9 @@ def process_video(video_path: str, player_height: float) -> Tuple[Dict[str, floa
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     keypoints_history = []
 
+    # フレームレートとスケールファクターを取得
+    fps, scale_factor = get_video_info(video_path)
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -80,6 +83,6 @@ def process_video(video_path: str, player_height: float) -> Tuple[Dict[str, floa
 
     # サーブを分析
     phases = analyze_serve_phases(smoothed_keypoints)
-    metrics = calculate_serve_metrics(smoothed_keypoints, player_height)
+    metrics = calculate_serve_metrics(smoothed_keypoints, player_height, fps, scale_factor)
 
     return metrics, phases, smoothed_keypoints
