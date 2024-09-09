@@ -53,7 +53,8 @@ def main():
     
     # メトリクスの計算
     fps = video_info[0]  # タプルの最初の要素を取得
-    metrics = calculate_serve_metrics(keypoints_history, player_height, fps)
+    scale_factor = config.get('scale_factor', 1.0)  # 設定ファイルからスケールファクターを取得、デフォルトは1.0
+    metrics = calculate_serve_metrics(keypoints_history, player_height, fps, scale_factor)
     validated_metrics = validate_metrics(metrics)
     
     # 可視化
@@ -62,9 +63,9 @@ def main():
     visualize_joint_angles(keypoints_history, serve_phases)
     
     # レポートの生成
-    generate_focused_html_report(validated_metrics, serve_phases, keypoints_3d)
+    generate_focused_html_report(validated_metrics)
     
-    logging.info("処理が完了しました。結果は 'advanced_serve_analysis_report.html' に保存され、各種グラフも個別に保存されました。")
+    logging.info("処理が完了しました。結果は 'focused_serve_analysis_report.html' に保存され、各種グラフも個別に保存されました。")
 
 if __name__ == "__main__":
     main()
