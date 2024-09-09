@@ -1,23 +1,6 @@
 from typing import Dict, List
 import numpy as np
 
-def generate_focused_report(metrics: Dict[str, float]) -> str:
-    report = "Focused Tennis Serve Analysis Report\n"
-    report += "====================================\n\n"
-    
-    report += "Key Serve Metrics:\n"
-    for metric, value in metrics.items():
-        if metric == 'max_knee_flexion':
-            report += f"- Maximum Knee Flexion: {value:.2f} degrees\n"
-        elif metric == 'max_elbow_flexion':
-            report += f"- Maximum Elbow Flexion: {value:.2f} degrees\n"
-        elif metric == 'max_hip_shoulder_separation':
-            report += f"- Maximum Hip-Shoulder Separation: {value*100:.2f} cm\n"
-        elif metric == 'serve_speed':
-            report += f"- Serve Speed: {value:.2f} km/h\n"
-    
-    return report
-
 def generate_focused_html_report(metrics: Dict[str, float]):
     html_content = """
     <html>
@@ -46,7 +29,7 @@ def generate_focused_html_report(metrics: Dict[str, float]):
         elif metric == 'max_elbow_flexion':
             html_content += f"<tr><td>Maximum Elbow Flexion</td><td>{value:.2f}</td><td>degrees</td></tr>"
         elif metric == 'max_hip_shoulder_separation':
-            html_content += f"<tr><td>Maximum Hip-Shoulder Separation</td><td>{value*100:.2f}</td><td>cm</td></tr>"
+            html_content += f"<tr><td>Maximum Hip-Shoulder Separation</td><td>{value:.2f}</td><td>degrees</td></tr>"
         elif metric == 'serve_speed':
             html_content += f"<tr><td>Serve Speed</td><td>{value:.2f}</td><td>km/h</td></tr>"
 
