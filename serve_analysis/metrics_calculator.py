@@ -2,63 +2,59 @@ import numpy as np
 from typing import Dict, List, Tuple
 from .utils import calculate_angle
 
-def calculate_serve_metrics(keypoints_history: List[np.ndarray], player_height: float, fps: int = 30) -> Dict[str, float]:
-    """サーブのメトリクスを計算する"""
+def calculate_serve_metrics(keypoints_history: List[Dict[str, List[float]]], player_height: float, fps: int, scale_factor: float) -> Dict[str, float]:
     metrics = {
         "max_knee_flexion": 0,
         "max_elbow_flexion": 0,
         "max_hip_shoulder_separation": 0,
         "serve_speed": 0
     }
-    
-    # スケーリング係数の計算
-    valid_heights = []
-    for kp in keypoints_history:
-        if isinstance(kp, np.ndarray) and kp.dtype != np.str_ and len(kp) > 16 and len(kp) > 12:  # インデックスが範囲内か確認
-            if not np.all(kp[16] == 0) and not np.all(kp[12] == 0):
-                valid_heights.append(np.linalg.norm(kp[16] - kp[12]))
-    
-    if valid_heights:
-        player_height_pixels = np.mean(valid_heights)
-        scale_factor = player_height / player_height_pixels
-    else:
-        scale_factor = 1.0  # デフォルト値
-    
+
     for keypoints in keypoints_history:
-        if isinstance(keypoints, np.ndarray) and keypoints.dtype != np.str_:
-            # 膝の屈曲（右膝の角度）
-            if len(keypoints) > 12 and len(keypoints) > 14 and len(keypoints) > 16:  # インデックスが範囲内か確認
-                hip = keypoints[12]
-                knee = keypoints[14]
-                ankle = keypoints[16]
-                if not np.all(hip == 0) and not np.all(knee == 0) and not np.all(ankle == 0):
-                    knee_angle = calculate_angle(hip, knee, ankle)
-                    metrics["max_knee_flexion"] = max(metrics["max_knee_flexion"], 180 - knee_angle)
-            
-            # 肘の屈曲（右肘の角度）
-            if len(keypoints) > 6 and len(keypoints) > 8 and len(keypoints) > 10:  # インデックスが範囲内か確認
-                shoulder = keypoints[6]
-                elbow = keypoints[8]
-                wrist = keypoints[10]
-                if not np.all(shoulder == 0) and not np.all(elbow == 0) and not np.all(wrist == 0):
-                    elbow_angle = calculate_angle(shoulder, elbow, wrist)
-                    metrics["max_elbow_flexion"] = max(metrics["max_elbow_flexion"], 180 - elbow_angle)
-            
-            # 腰と肩の分離（角度で計算）
-            if len(keypoints) > 6 and len(keypoints) > 12 and len(keypoints) > 24 and len(keypoints) > 26:  # インデックスが範囲内か確認
-                right_hip = keypoints[12]
-                left_hip = keypoints[24]
-                right_shoulder = keypoints[6]
-                left_shoulder = keypoints[26]
-                if not np.all(right_hip == 0) and not np.all(left_hip == 0) and not np.all(right_shoulder == 0) and not np.all(left_shoulder == 0):
-                    hip_line = right_hip - left_hip
-                    shoulder_line = right_shoulder - left_shoulder
-                    hip_shoulder_angle = np.abs(np.degrees(np.arctan2(np.cross(hip_line, shoulder_line), np.dot(hip_line, shoulder_line))))
-                    metrics["max_hip_shoulder_separation"] = max(metrics["max_hip_shoulder_separation"], hip_shoulder_angle)
+        # 最大膝屈曲角度
+        if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
+            hip = np.array(keypoints['right_hip'][:2])
+            knee = np.array(keypoints['right_knee'][:2])
+            ankle = np.array(keypoints['right_ankle'][:2])
+            if not np.all(hip == 0) and not np.all(knee == 0) and not np.all(ankle == 0):
+                knee_angle = calculate_angle(hip, knee, ankle)
+                metrics["max_knee_flexion"] = max(metrics["max_knee_flexion"], 180 - knee_angle)
+        
+        # 最大肘屈曲角度
+        if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
+            shoulder = np.array(keypoints['right_shoulder'][:2])
+            elbow = np.array(keypoints['right_elbow'][:2])
+            wrist = np.array(keypoints['right_wrist'][:2])
+            if not np.all(shoulder == 0) and not np.all(elbow == 0) and not np.all(wrist == 0):
+                elbow_angle = calculate_angle(shoulder, elbow, wrist)
+                metrics["max_elbow_flexion"] = max(metrics["max_elbow_flexion"], 180 - elbow_angle)
+        
+        # 最大腰-肩分離角度
+        if all(k in keypoints for k in ['right_hip', 'left_hip', 'right_shoulder', 'left_shoulder']):
+            right_hip = np.array(keypoints['right_hip'][:2])
+            left_hip = np.array(keypoints['left_hip'][:2])
+            right_shoulder = np.array(keypoints['right_shoulder'][:2])
+            left_shoulder = np.array(keypoints['left_shoulder'][:2])
+            if not np.all(right_hip == 0) and not np.all(left_hip == 0) and not np.all(right_shoulder == 0) and not np.all(left_shoulder == 0):
+                hip_line = right_hip - left_hip
+                shoulder_line = right_shoulder - left_shoulder
+                hip_shoulder_angle = np.abs(np.degrees(np.arctan2(np.cross(hip_line, shoulder_line), np.dot(hip_line, shoulder_line))))
+                metrics["max_hip_shoulder_separation"] = max(metrics["max_hip_shoulder_separation"], hip_shoulder_angle)
     
     # サーブスピードの計算
-    metrics["serve_speed"] = calculate_serve_speed(keypoints_history, fps, scale_factor)
-    
+    wrist_positions = [np.array(kp['right_wrist'][:2]) for kp in keypoints_history if 'right_wrist' in kp and not np.all(kp['right_wrist'][:2] == 0)]
+    velocities = []
+    for i in range(len(wrist_positions) - 1):
+        distance = np.linalg.norm(wrist_positions[i+1] - wrist_positions[i])
+        velocity = distance * fps * scale_factor  # m/s
+        velocities.append(velocity)
+
+    if velocities:
+        top_velocities = sorted(velocities)[-int(len(velocities)*0.1):]
+        max_velocity = np.mean(top_velocities)
+        serve_speed = max_velocity * 3.6 * 1.2  # m/s から km/h に変換し、ラケットの加速を考慮して1.2倍
+        metrics["serve_speed"] = serve_speed
+
     return metrics
 
 def calculate_serve_speed(keypoints_history: List[np.ndarray], fps: int, scale_factor: float) -> float:
