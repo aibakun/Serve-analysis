@@ -4,3 +4,5 @@ tensorflow-hub
 scipy
 PyYAML
 opencv-python-headless
+matplotlib
+scikit-learn

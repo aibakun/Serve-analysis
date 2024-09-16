@@ -2,71 +2,87 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, List
 import logging
-from .utils import calculate_angle
+from .utils import calculate_angle, smooth_angle_data
+from .constants import PHASE_COLORS
 
-plt.rcParams['font.sans-serif'] = ['Arial']  # デフォルトのフォントを設定
+plt.rcParams['font.sans-serif'] = ['Arial']
 
-def visualize_serve_trajectory(keypoints_history: List[Dict[str, List[float]]], output_path: str):
-    try:
-        plt.figure(figsize=(12, 8))
-        num_frames = len(keypoints_history)
-        joints = ['right_shoulder', 'right_elbow', 'right_wrist', 'right_hip', 'right_knee', 'right_ankle']
-        colors = ['red', 'green', 'blue', 'orange', 'purple', 'brown']
-        labels = ['Right Shoulder', 'Right Elbow', 'Right Wrist', 'Right Hip', 'Right Knee', 'Right Ankle']
-        
-        for i, joint in enumerate(joints):
-            x = [kp[joint][0] for kp in keypoints_history if joint in kp]
-            y = [kp[joint][1] for kp in keypoints_history if joint in kp]
-            
-            for j in range(len(x) - 1):
-                alpha = (j + 1) / num_frames
-                plt.plot(x[j:j+2], y[j:j+2], color=colors[i], alpha=alpha, linewidth=2)
-        
-        plt.xlabel('X Coordinate')
-        plt.ylabel('Y Coordinate')
-        plt.title('Serve Trajectory')
-        plt.legend(labels)
-        plt.gca().invert_yaxis()  # Y軸を反転
-        plt.savefig(output_path)
-        plt.close()
-        logging.info(f"Serve trajectory image saved: {output_path}")
-    except Exception as e:
-        logging.error(f"Error occurred while visualizing serve trajectory: {str(e)}")
+def visualize_joint_angles(elbow_angles: List[float], knee_angles: List[float], phases: List[str], output_path: str):
+    plt.figure(figsize=(15, 10))
+    
+    # 関節角度のプロット
+    plt.plot(elbow_angles, label='Elbow Angle')
+    plt.plot(knee_angles, label='Knee Angle')
+    
+    # フェーズの背景色を追加
+    phase_starts = [0] + [i for i in range(1, len(phases)) if phases[i] != phases[i-1]]
+    for start, end in zip(phase_starts, phase_starts[1:] + [len(phases)]):
+        plt.axvspan(start, end, facecolor=PHASE_COLORS.get(phases[start], 'gray'), alpha=0.3)
+    
+    plt.xlabel('Frame', fontsize=12)
+    plt.ylabel('Angle (degrees)', fontsize=12)
+    plt.title('Joint Angle Changes During Serve', fontsize=14)
+    plt.legend(fontsize=10)
+    
+    # フェーズラベルを追加
+    unique_phases = []
+    for i, phase in enumerate(phases):
+        if phase not in unique_phases:
+            unique_phases.append(phase)
+            plt.text(i, plt.ylim()[1], phase, rotation=90, verticalalignment='bottom', fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
 
-def visualize_joint_angles(keypoints_history: List[Dict[str, List[float]]], output_path: str):
-    try:
-        angles = {
-            'Right Elbow': [],
-            'Right Knee': []
+def visualize_phase_angles(elbow_angles: List[float], knee_angles: List[float], phases: List[str], output_path: str):
+    phase_angles = {phase: {'Elbow': [], 'Knee': []} for phase in set(phases)}
+    
+    for i, phase in enumerate(phases):
+        phase_angles[phase]['Elbow'].append(elbow_angles[i])
+        phase_angles[phase]['Knee'].append(knee_angles[i])
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 20))
+    
+    for phase, angles in phase_angles.items():
+        ax1.boxplot(angles['Elbow'], positions=[list(phase_angles.keys()).index(phase)], labels=[phase])
+        ax2.boxplot(angles['Knee'], positions=[list(phase_angles.keys()).index(phase)], labels=[phase])
+    
+    ax1.set_title('Elbow Angle by Serve Phase', fontsize=14)
+    ax1.set_ylabel('Angle (degrees)', fontsize=12)
+    ax2.set_title('Knee Angle by Serve Phase', fontsize=14)
+    ax2.set_ylabel('Angle (degrees)', fontsize=12)
+    ax2.set_xlabel('Serve Phase', fontsize=12)
+    
+    ax1.tick_params(axis='x', rotation=45)
+    ax2.tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+def generate_phase_statistics(elbow_angles: List[float], knee_angles: List[float], phases: List[str]) -> Dict:
+    phase_stats = {phase: {'Elbow': [], 'Knee': []} for phase in set(phases)}
+    
+    for i, phase in enumerate(phases):
+        phase_stats[phase]['Elbow'].append(elbow_angles[i])
+        phase_stats[phase]['Knee'].append(knee_angles[i])
+    
+    results = {}
+    for phase, angles in phase_stats.items():
+        results[phase] = {
+            'Elbow': {
+                'Min': min(angles['Elbow']),
+                'Max': max(angles['Elbow']),
+                'Mean': np.mean(angles['Elbow']),
+                'Std': np.std(angles['Elbow'])
+            },
+            'Knee': {
+                'Min': min(angles['Knee']),
+                'Max': max(angles['Knee']),
+                'Mean': np.mean(angles['Knee']),
+                'Std': np.std(angles['Knee'])
+            }
         }
-        
-        for keypoints in keypoints_history:
-            if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
-                shoulder = np.array(keypoints['right_shoulder'][:2])
-                elbow = np.array(keypoints['right_elbow'][:2])
-                wrist = np.array(keypoints['right_wrist'][:2])
-                if not np.all(shoulder == 0) and not np.all(elbow == 0) and not np.all(wrist == 0):
-                    elbow_angle = calculate_angle(shoulder, elbow, wrist)
-                    angles['Right Elbow'].append(elbow_angle)
-            
-            if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
-                hip = np.array(keypoints['right_hip'][:2])
-                knee = np.array(keypoints['right_knee'][:2])
-                ankle = np.array(keypoints['right_ankle'][:2])
-                if not np.all(hip == 0) and not np.all(knee == 0) and not np.all(ankle == 0):
-                    knee_angle = calculate_angle(hip, knee, ankle)
-                    angles['Right Knee'].append(knee_angle)
-        
-        plt.figure(figsize=(12, 8))
-        for joint, angle_list in angles.items():
-            plt.plot(angle_list, label=joint)
-        
-        plt.xlabel('Frame')
-        plt.ylabel('Angle (degrees)')
-        plt.title('Joint Angle Changes')
-        plt.legend()
-        plt.savefig(output_path)
-        plt.close()
-        logging.info(f"Joint angles image saved: {output_path}")
-    except Exception as e:
-        logging.error(f"Error occurred while visualizing joint angles: {str(e)}")
+    
+    return results

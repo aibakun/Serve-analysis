@@ -9,11 +9,11 @@ TENNIS_KEYPOINTS: Dict[int, str] = {
     15: 'left_ankle', 16: 'right_ankle'
 }
 
-PHASE_COLORS: Dict[str, Tuple[int, int, int]] = {
-    'Preparation': (255, 0, 0),    # 赤
-    'Backswing': (0, 255, 0),      # 緑
-    'Loading': (0, 0, 255),        # 青
-    'Forward Swing': (255, 255, 0),# 黄
-    'Impact': (255, 0, 255),       # マゼンタ
-    'Follow Through': (0, 255, 255)# シアン
+PHASE_COLORS: Dict[str, Tuple[float, float, float]] = {
+    'Preparation': (1.0, 0.0, 0.0),    # 赤
+    'Backswing': (0.0, 1.0, 0.0),      # 緑
+    'Loading': (0.0, 0.0, 1.0),        # 青
+    'Forward Swing': (1.0, 1.0, 0.0),  # 黄
+    'Impact': (1.0, 0.0, 1.0),         # マゼンタ
+    'Follow Through': (0.0, 1.0, 1.0)  # シアン
 }

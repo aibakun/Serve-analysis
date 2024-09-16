@@ -4,102 +4,116 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from joblib import dump, load
-from scipy.signal import find_peaks
-
+import os
 from .utils import calculate_angle
-from .constants import TENNIS_KEYPOINTS
+from scipy.signal import medfilt
 
-def extract_features(keypoints: Dict[str, List[float]], prev_keypoints: Dict[str, List[float]] = None) -> List[float]:
-    """キーポイントから特徴量を抽出する"""
+def smooth_phases(phases: List[str], window_size: int = 5) -> List[str]:
+    if not phases:
+        return []
+    phase_to_num = {phase: i for i, phase in enumerate(['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through'])}
+    num_phases = [phase_to_num[phase] for phase in phases]
+    smoothed_num_phases = medfilt(num_phases, kernel_size=min(window_size, len(num_phases)))
+    num_to_phase = {i: phase for phase, i in phase_to_num.items()}
+    return [num_to_phase[num] for num in smoothed_num_phases]
+
+def analyze_serve_phases(keypoints_history: List[Dict[str, List[float]]]) -> List[str]:
+    initial_phases = initial_phase_classification(keypoints_history)
+    if not initial_phases:
+        return ['Unknown'] * len(keypoints_history)
+    smoothed_phases = smooth_phases(initial_phases)
+    return smoothed_phases
+
+def enforce_phase_order(phases: List[str]) -> List[str]:
+    correct_order = ['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through']
+    enforced_phases = []
+    current_index = 0
+    
+    for phase in phases:
+        if phase in correct_order[current_index:]:
+            current_index = correct_order.index(phase)
+        enforced_phases.append(correct_order[current_index])
+    
+    return enforced_phases
+
+def extract_features(keypoints: Dict[str, List[float]]) -> List[float]:
     features = []
     
-    # 静的特徴
-    for key in TENNIS_KEYPOINTS.values():
-        if key in keypoints:
-            features.extend(keypoints[key][:2])  # x, y座標のみを使用
-        else:
-            features.extend([0, 0])  # キーポイントが見つからない場合は0を追加
-    
-    # 角度特徴
-    angle_pairs = [
-        ('right_shoulder', 'right_elbow', 'right_wrist'),
-        ('right_elbow', 'right_shoulder', 'right_hip'),
-        ('right_shoulder', 'right_hip', 'right_knee'),
-        ('right_hip', 'right_knee', 'right_ankle'),
-        ('left_shoulder', 'left_elbow', 'left_wrist'),
-        ('left_elbow', 'left_shoulder', 'left_hip'),
-        ('left_shoulder', 'left_hip', 'left_knee'),
-        ('left_hip', 'left_knee', 'left_ankle')
-    ]
-    
-    for a, b, c in angle_pairs:
-        if all(k in keypoints for k in [a, b, c]):
-            angle = calculate_angle(
-                np.array(keypoints[a][:2]),
-                np.array(keypoints[b][:2]),
-                np.array(keypoints[c][:2])
-            )
-            features.append(angle)
-        else:
-            features.append(0)  # 角度が計算できない場合は0を追加
-    
-    # 動的特徴（速度）
-    if prev_keypoints is not None:
-        for key in TENNIS_KEYPOINTS.values():
-            if key in keypoints and key in prev_keypoints:
-                velocity = np.linalg.norm(np.array(keypoints[key][:2]) - np.array(prev_keypoints[key][:2]))
-                features.append(velocity)
-            else:
-                features.append(0)
+    # 肘の角度
+    if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
+        shoulder = np.array(keypoints['right_shoulder'][:2])
+        elbow = np.array(keypoints['right_elbow'][:2])
+        wrist = np.array(keypoints['right_wrist'][:2])
+        elbow_angle = calculate_angle(shoulder, elbow, wrist)
+        features.append(elbow_angle)
     else:
-        features.extend([0] * len(TENNIS_KEYPOINTS))  # 最初のフレームの場合、速度を0とする
+        features.append(0)
+    
+    # 膝の角度
+    if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
+        hip = np.array(keypoints['right_hip'][:2])
+        knee = np.array(keypoints['right_knee'][:2])
+        ankle = np.array(keypoints['right_ankle'][:2])
+        knee_angle = calculate_angle(hip, knee, ankle)
+        features.append(knee_angle)
+    else:
+        features.append(0)
     
     return features
 
-def analyze_serve_phases(keypoints_history: List[Dict[str, List[float]]]) -> List[str]:
-    """サーブのフェーズを分析する"""
-    try:
-        clf = load('phase_classifier.joblib')
-        print("Loaded existing phase classifier.")
-    except:
-        print("Phase classifier not found. Training a new one.")
-        initial_phases = initial_phase_classification(keypoints_history)
-        clf = train_phase_classifier(keypoints_history, initial_phases)
-    
-    X = []
-    for i in range(len(keypoints_history)):
-        prev_keypoints = keypoints_history[i-1] if i > 0 else None
-        features = extract_features(keypoints_history[i], prev_keypoints)
-        X.append(features)
-    
-    # 特徴量の数をチェックし、必要に応じて再トレーニング
-    if len(X[0]) != clf.n_features_in_:
-        print(f"Feature mismatch. Retraining classifier. Expected {clf.n_features_in_}, got {len(X[0])}.")
-        initial_phases = initial_phase_classification(keypoints_history)
-        clf = train_phase_classifier(keypoints_history, initial_phases)
-    
-    phases = clf.predict(X)
-    return list(phases)
-
 def initial_phase_classification(keypoints_history: List[Dict[str, List[float]]]) -> List[str]:
-    """初期フェーズ分類（ルールベース）"""
     phases = []
-    velocities = [np.linalg.norm(np.array(keypoints_history[i+1]['right_wrist'][:2]) - np.array(keypoints_history[i]['right_wrist'][:2])) for i in range(len(keypoints_history)-1)]
-    peaks, _ = find_peaks(velocities, height=np.mean(velocities), distance=10)
-    racket_heights = [kp['right_wrist'][1] for kp in keypoints_history]
-    shoulder_rotations = [np.abs(kp['right_shoulder'][0] - kp['left_shoulder'][0]) for kp in keypoints_history]
+    elbow_angles = []
+    knee_angles = []
+    wrist_heights = []
     
-    preparation_end = np.argmax(shoulder_rotations[:len(shoulder_rotations)//2])
-    backswing_end = np.argmin(racket_heights)
-    forward_swing_start = peaks[-2] if len(peaks) >= 2 else len(velocities) // 2
-    impact_frame = peaks[-1] if peaks.size > 0 else len(velocities) - 1
+    for keypoints in keypoints_history:
+        if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
+            elbow_angle = calculate_angle(keypoints['right_shoulder'], keypoints['right_elbow'], keypoints['right_wrist'])
+            elbow_angles.append(elbow_angle)
+        else:
+            elbow_angles.append(0)
+        
+        if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
+            knee_angle = calculate_angle(keypoints['right_hip'], keypoints['right_knee'], keypoints['right_ankle'])
+            knee_angles.append(knee_angle)
+        else:
+            knee_angles.append(0)
+        
+        if 'right_wrist' in keypoints:
+            wrist_heights.append(keypoints['right_wrist'][1])
+        else:
+            wrist_heights.append(0)
     
-    for i in range(len(keypoints_history)):
-        if i < preparation_end:
+    # スムージング
+    elbow_angles = medfilt(elbow_angles, kernel_size=min(5, len(elbow_angles)))
+    knee_angles = medfilt(knee_angles, kernel_size=min(5, len(knee_angles)))
+    wrist_heights = medfilt(wrist_heights, kernel_size=min(5, len(wrist_heights)))
+    
+    # フェーズの境界を検出
+    total_frames = len(keypoints_history)
+    if total_frames < 5:
+        return ['Preparation'] * total_frames
+
+    preparation_end = min(np.argmin(wrist_heights[:total_frames//2]), total_frames-1)
+    backswing_end = min(preparation_end + np.argmin(wrist_heights[preparation_end:]), total_frames-1)
+    loading_end = min(backswing_end + np.argmax(knee_angles[backswing_end:]), total_frames-1)
+    
+    forward_swing_window = min(20, total_frames - loading_end)
+    forward_swing_start = min(loading_end + np.argmin(elbow_angles[loading_end:loading_end+forward_swing_window]), total_frames-1)
+    
+    impact_window = min(10, total_frames - forward_swing_start)
+    if impact_window > 1:
+        impact_frame = min(forward_swing_start + np.argmax(np.diff(elbow_angles[forward_swing_start:forward_swing_start+impact_window])), total_frames-1)
+    else:
+        impact_frame = forward_swing_start
+
+    for i in range(total_frames):
+        if i <= preparation_end:
             phases.append('Preparation')
-        elif i < backswing_end:
+        elif i <= backswing_end:
             phases.append('Backswing')
-        elif i < forward_swing_start:
+        elif i <= loading_end:
             phases.append('Loading')
         elif i < impact_frame:
             phases.append('Forward Swing')
@@ -111,14 +125,8 @@ def initial_phase_classification(keypoints_history: List[Dict[str, List[float]]]
     return phases
 
 def train_phase_classifier(keypoints_history: List[Dict[str, List[float]]], phases: List[str]) -> RandomForestClassifier:
-    """フェーズ分類器を訓練する"""
-    X = []
+    X = [extract_features(keypoints) for keypoints in keypoints_history]
     y = phases
-    
-    for i in range(len(keypoints_history)):
-        prev_keypoints = keypoints_history[i-1] if i > 0 else None
-        features = extract_features(keypoints_history[i], prev_keypoints)
-        X.append(features)
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
