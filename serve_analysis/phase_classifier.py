@@ -21,25 +21,17 @@ def analyze_serve_phases(keypoints_history: List[Dict[str, List[float]]]) -> Lis
     initial_phases = initial_phase_classification(keypoints_history)
     if not initial_phases:
         return ['Unknown'] * len(keypoints_history)
-    smoothed_phases = smooth_phases(initial_phases)
+    
+    window_size = max(3, len(initial_phases) // 20)
+    if window_size % 2 == 0:
+        window_size += 1  # 偶数の場合は1を加えて奇数にする
+    
+    smoothed_phases = smooth_phases(initial_phases, window_size=window_size)
     return smoothed_phases
-
-def enforce_phase_order(phases: List[str]) -> List[str]:
-    correct_order = ['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through']
-    enforced_phases = []
-    current_index = 0
-    
-    for phase in phases:
-        if phase in correct_order[current_index:]:
-            current_index = correct_order.index(phase)
-        enforced_phases.append(correct_order[current_index])
-    
-    return enforced_phases
 
 def extract_features(keypoints: Dict[str, List[float]]) -> List[float]:
     features = []
     
-    # 肘の角度
     if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
         shoulder = np.array(keypoints['right_shoulder'][:2])
         elbow = np.array(keypoints['right_elbow'][:2])
@@ -49,7 +41,6 @@ def extract_features(keypoints: Dict[str, List[float]]) -> List[float]:
     else:
         features.append(0)
     
-    # 膝の角度
     if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
         hip = np.array(keypoints['right_hip'][:2])
         knee = np.array(keypoints['right_knee'][:2])
@@ -85,43 +76,53 @@ def initial_phase_classification(keypoints_history: List[Dict[str, List[float]]]
         else:
             wrist_heights.append(0)
     
-    # スムージング
-    elbow_angles = medfilt(elbow_angles, kernel_size=min(5, len(elbow_angles)))
-    knee_angles = medfilt(knee_angles, kernel_size=min(5, len(knee_angles)))
-    wrist_heights = medfilt(wrist_heights, kernel_size=min(5, len(wrist_heights)))
+    # スムージング（奇数のカーネルサイズを保証）
+    window_size = max(3, len(elbow_angles) // 20)
+    if window_size % 2 == 0:
+        window_size += 1
     
-    # フェーズの境界を検出
+    elbow_angles = medfilt(elbow_angles, kernel_size=window_size)
+    knee_angles = medfilt(knee_angles, kernel_size=window_size)
+    wrist_heights = medfilt(wrist_heights, kernel_size=window_size)
+    
     total_frames = len(keypoints_history)
     if total_frames < 5:
         return ['Preparation'] * total_frames
 
-    preparation_end = min(np.argmin(wrist_heights[:total_frames//2]), total_frames-1)
-    backswing_end = min(preparation_end + np.argmin(wrist_heights[preparation_end:]), total_frames-1)
-    loading_end = min(backswing_end + np.argmax(knee_angles[backswing_end:]), total_frames-1)
+    # 動的なフェーズ検出
+    elbow_velocity = np.diff(elbow_angles)
+    knee_velocity = np.diff(knee_angles)
+    wrist_velocity = np.diff(wrist_heights)
+
+    preparation_end = min(np.argmax(np.abs(wrist_velocity[:total_frames//2])), total_frames - 1)
+    backswing_end = min(preparation_end + np.argmin(wrist_heights[preparation_end:]), total_frames - 1)
+    loading_end = min(backswing_end + np.argmax(knee_angles[backswing_end:]), total_frames - 1)
+    forward_swing_start = min(loading_end + np.argmin(elbow_angles[loading_end:]), total_frames - 1)
     
-    forward_swing_window = min(20, total_frames - loading_end)
-    forward_swing_start = min(loading_end + np.argmin(elbow_angles[loading_end:loading_end+forward_swing_window]), total_frames-1)
-    
-    impact_window = min(10, total_frames - forward_swing_start)
-    if impact_window > 1:
-        impact_frame = min(forward_swing_start + np.argmax(np.diff(elbow_angles[forward_swing_start:forward_swing_start+impact_window])), total_frames-1)
+    # Impact検出の改善
+    remaining_frames = total_frames - forward_swing_start
+    if remaining_frames > 1:
+        forward_swing_velocity = elbow_velocity[forward_swing_start:forward_swing_start + remaining_frames]
+        impact_frame = forward_swing_start + np.argmax(forward_swing_velocity)
     else:
         impact_frame = forward_swing_start
 
-    for i in range(total_frames):
-        if i <= preparation_end:
-            phases.append('Preparation')
-        elif i <= backswing_end:
-            phases.append('Backswing')
-        elif i <= loading_end:
-            phases.append('Loading')
-        elif i < impact_frame:
-            phases.append('Forward Swing')
-        elif i == impact_frame:
-            phases.append('Impact')
-        else:
-            phases.append('Follow Through')
-    
+    # フェーズの割り当て
+    phase_boundaries = [0, preparation_end, backswing_end, loading_end, forward_swing_start, impact_frame, total_frames]
+    phase_names = ['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through']
+
+    for i in range(len(phase_boundaries) - 1):
+        phases.extend([phase_names[i]] * (phase_boundaries[i+1] - phase_boundaries[i]))
+
+    # デバッグ情報
+    print(f"Total frames: {total_frames}")
+    print(f"Window size: {window_size}")
+    print(f"Preparation end: {preparation_end}")
+    print(f"Backswing end: {backswing_end}")
+    print(f"Loading end: {loading_end}")
+    print(f"Forward swing start: {forward_swing_start}")
+    print(f"Impact frame: {impact_frame}")
+
     return phases
 
 def train_phase_classifier(keypoints_history: List[Dict[str, List[float]]], phases: List[str]) -> RandomForestClassifier:

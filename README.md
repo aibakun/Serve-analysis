@@ -1,7 +1,7 @@
 # テニスサーブ分析システム
 
 ## プロジェクト概要
-このプロジェクトは、テニスのサーブ動作を分析し、選手のパフォーマンスを定量的に評価するシステムです。ビデオ入力を使用して、サーブ動作中の主要な身体の動きを追跡し、重要なメトリクスを計算します。
+このプロジェクトは、テニスのサーブ動作を分析し、選手のパフォーマンスを定量的に評価するシステムです。ビデオ入力を使用して、サーブ動作中の主要な身体の動き、特に肘と膝の角度変化を追跡し、サーブのフェーズを分類します。
 
 ## モジュール詳細
 
@@ -10,7 +10,7 @@
 - 設定ファイル（config.yaml）の読み込み
 - TensorFlow Hubのセットアップ
 - ビデオ処理の実行
-- メトリクスの計算と検証
+- フェーズ分類の実行
 - 結果の可視化
 - レポートの生成
 
@@ -18,37 +18,33 @@
 ビデオ処理を担当するモジュールです。
 - MoveNetモデルを使用したキーポイント抽出
 - ビデオフレームの処理
-- キーポイントデータのスムージング（Savitzky-Golayフィルタ使用）
+- キーポイントデータのスムージング
 
-### 3. metrics_calculator.py
-サーブのメトリクスを計算するモジュールです。
-- 最大膝屈曲角度の計算
-- 最大肘屈曲角度の計算
-- 最大腰-肩分離角度の計算
-- サーブ速度の計算
-- メトリクスの検証
+### 3. phase_classifier.py
+サーブのフェーズを分類するモジュールです。
+- 動的なフェーズ境界の検出
+- フェーズのスムージング
 
 ### 4. visualizer.py
 結果を可視化するモジュールです。
-- サーブ軌道の可視化
 - 関節角度の時系列プロット
+- フェーズごとの関節角度の箱ひげ図
 
 ### 5. report_generator.py
 分析レポートを生成するモジュールです。
 - HTML形式のレポート生成
-- メトリクスの表示
-- 推奨事項の生成
+- フェーズごとの統計情報の表示
+- 視覚化結果の表示
 
 ### 6. utils.py
 ユーティリティ関数を含むモジュールです。
 - 角度計算関数
-- その他のヘルパー関数
+- データスムージング関数
 
-## 主要なメトリクス
-1. 最大膝屈曲角度
-2. 最大肘屈曲角度
-3. 最大腰-肩分離角度
-4. サーブ速度
+## 主要な分析項目
+1. サーブフェーズの分類 (Preparation, Backswing, Loading, Forward Swing, Impact, Follow Through)
+2. 各フェーズにおける右肘の角度変化
+3. 各フェーズにおける右膝の角度変化
 
 ## 使用技術
 - Python 3.7+
@@ -56,77 +52,46 @@
 - OpenCV
 - NumPy
 - Matplotlib
+- SciPy
 - TensorFlow Hub (MoveNet モデル)
 
-## 主要なメトリクスと計算方法
+## 主要な分析方法
 
-### 1. 最大膝屈曲角度
-右腰、右膝、右足首のキーポイントを使用して計算します。
+### 1. フェーズ分類
+キーポイントデータから動的にフェーズ境界を検出し、初期フェーズ分類を行います。その後、メディアンフィルタを使用してフェーズをスムージングします。
 
-```python
-if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
-    hip = np.array(keypoints['right_hip'][:2])
-    knee = np.array(keypoints['right_knee'][:2])
-    ankle = np.array(keypoints['right_ankle'][:2])
-    if not np.all(hip == 0) and not np.all(knee == 0) and not np.all(ankle == 0):
-        knee_angle = calculate_angle(hip, knee, ankle)
-        metrics["max_knee_flexion"] = max(metrics["max_knee_flexion"], 180 - knee_angle)
-```
-
-### 2. 最大肘屈曲角度
-右肩、右肘、右手首のキーポイントを使用して計算します。
-
-```python
-if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
-    shoulder = np.array(keypoints['right_shoulder'][:2])
-    elbow = np.array(keypoints['right_elbow'][:2])
-    wrist = np.array(keypoints['right_wrist'][:2])
-    if not np.all(shoulder == 0) and not np.all(elbow == 0) and not np.all(wrist == 0):
-        elbow_angle = calculate_angle(shoulder, elbow, wrist)
-        metrics["max_elbow_flexion"] = max(metrics["max_elbow_flexion"], 180 - elbow_angle)
-```
-
-### 3. 最大腰-肩分離角度
-左右の腰と肩のキーポイントを使用して計算します。
-
-```python
-if all(k in keypoints for k in ['right_hip', 'left_hip', 'right_shoulder', 'left_shoulder']):
-    right_hip = np.array(keypoints['right_hip'][:2])
-    left_hip = np.array(keypoints['left_hip'][:2])
-    right_shoulder = np.array(keypoints['right_shoulder'][:2])
-    left_shoulder = np.array(keypoints['left_shoulder'][:2])
-    if not np.all(right_hip == 0) and not np.all(left_hip == 0) and not np.all(right_shoulder == 0) and not np.all(left_shoulder == 0):
-        hip_line = right_hip - left_hip
-        shoulder_line = right_shoulder - left_shoulder
-        hip_shoulder_angle = np.abs(np.degrees(np.arctan2(np.cross(hip_line, shoulder_line), np.dot(hip_line, shoulder_line))))
-        metrics["max_hip_shoulder_separation"] = max(metrics["max_hip_shoulder_separation"], hip_shoulder_angle)
-```
-
-### 4. サーブ速度
-右手首の位置を追跡し、フレーム間の移動距離と撮影のフレームレートを使用して速度を計算します。
-
-```python
-wrist_positions = [np.array(kp['right_wrist'][:2]) for kp in keypoints_history if 'right_wrist' in kp and not np.all(kp['right_wrist'][:2] == 0)]
-velocities = []
-for i in range(len(wrist_positions) - 1):
-    distance = np.linalg.norm(wrist_positions[i+1] - wrist_positions[i])
-    velocity = distance * fps * scale_factor  # m/s
-    velocities.append(velocity)
-
-if velocities:
-    top_velocities = sorted(velocities)[-int(len(velocities)*0.1):]
-    max_velocity = np.mean(top_velocities)
-    serve_speed = max_velocity * 3.6 * 1.2  # m/s から km/h に変換し、ラケットの加速を考慮して1.2倍
-    metrics["serve_speed"] = serve_speed
-```
+### 2. 関節角度の計算
+右肩、右肘、右手首のキーポイントを使用して肘の角度を計算し、右腰、右膝、右足首のキーポイントを使用して膝の角度を計算します。
 
 ## 使用方法
 1. 必要なライブラリをインストール: `pip install -r requirements.txt`
 2. `config.yaml` ファイルで分析するビデオのパスと選手の身長を設定
 3. `python main.py` を実行
-4. 結果は `focused_serve_analysis_report.html` に保存され、`serve_trajectory.png` と `joint_angles.png` も生成されます
+4. 結果は `focused_serve_analysis_report.html` に保存され、`joint_angles.png` と `phase_angles.png` も生成されます
 
-## 今後の改善点
-- 各メトリクスの計算方法の見直しによる精度改善
-- リアルタイム分析機能の追加
-- より詳細なフェーズ分析の実装
+## 現在の課題と改善点
+
+### フェーズ分析の課題
+1. Impact フェーズの検出: 現在の結果では Impact フェーズが検出されない場合がある。
+2. Follow Through フェーズの検出: Follow Through フェーズも検出されない場合がある。
+3. Loading フェーズの長さ: Loading フェーズが不自然に長く検出される場合がある。
+4. Forward Swing フェーズの短さ: Forward Swing フェーズが短すぎる可能性がある。
+
+### 角度分析の課題
+1. Backswing フェーズの肘角度: Backswing 中の肘角度が一定値（137.44度）になっている。
+2. 角度の変動: 一部のフェーズで角度の標準偏差が大きくなっています。これは、ノイズや外れ値の影響である可能性がある。
+
+### 改善案
+1. フェーズ検出アルゴリズムの調整:
+   - Impact フェーズを適切に検出するロジックの追加
+   - Follow Through フェーズの検出方法の改善
+   - Loading と Forward Swing フェーズの境界をより適切に設定するロジックの実装
+2. 角度計算の精度向上:
+   - 外れ値の検出と除去方法の改善
+   - スムージングアルゴリズムの調整
+3. データの前処理の強化:
+   - キーポイントデータの品質チェックと異常値の除外
+4. 可視化の改善:
+   - フェーズごとの角度変化をより明確に示すグラフの作成
+5. 動的なパラメータ調整:
+   - サーブの速度や選手の体格に応じて、フェーズ検出のパラメータを動的に調整する機能の追加
