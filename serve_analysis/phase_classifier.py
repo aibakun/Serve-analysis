@@ -1,90 +1,22 @@
 import numpy as np
 from typing import List, Dict
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from joblib import dump, load
-import os
-from .utils import calculate_angle
-from scipy.signal import medfilt
-
-def smooth_phases(phases: List[str], window_size: int = 5) -> List[str]:
-    if not phases:
-        return []
-    phase_to_num = {phase: i for i, phase in enumerate(['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through'])}
-    num_phases = [phase_to_num[phase] for phase in phases]
-    smoothed_num_phases = medfilt(num_phases, kernel_size=min(window_size, len(num_phases)))
-    num_to_phase = {i: phase for phase, i in phase_to_num.items()}
-    return [num_to_phase[num] for num in smoothed_num_phases]
+from scipy.signal import medfilt, find_peaks
+from .utils import calculate_angle, smooth_angle_data, remove_outliers
 
 def analyze_serve_phases(keypoints_history: List[Dict[str, List[float]]]) -> List[str]:
-    initial_phases = initial_phase_classification(keypoints_history)
-    if not initial_phases:
-        return ['Unknown'] * len(keypoints_history)
-    
-    window_size = max(3, len(initial_phases) // 20)
-    if window_size % 2 == 0:
-        window_size += 1  # 偶数の場合は1を加えて奇数にする
-    
-    smoothed_phases = smooth_phases(initial_phases, window_size=window_size)
-    return smoothed_phases
+    # 角度データの計算と前処理
+    elbow_angles = [calculate_angle(kp['right_shoulder'], kp['right_elbow'], kp['right_wrist']) for kp in keypoints_history]
+    knee_angles = [calculate_angle(kp['right_hip'], kp['right_knee'], kp['right_ankle']) for kp in keypoints_history]
+    wrist_heights = [kp['right_wrist'][1] for kp in keypoints_history]
 
-def extract_features(keypoints: Dict[str, List[float]]) -> List[float]:
-    features = []
-    
-    if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
-        shoulder = np.array(keypoints['right_shoulder'][:2])
-        elbow = np.array(keypoints['right_elbow'][:2])
-        wrist = np.array(keypoints['right_wrist'][:2])
-        elbow_angle = calculate_angle(shoulder, elbow, wrist)
-        features.append(elbow_angle)
-    else:
-        features.append(0)
-    
-    if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
-        hip = np.array(keypoints['right_hip'][:2])
-        knee = np.array(keypoints['right_knee'][:2])
-        ankle = np.array(keypoints['right_ankle'][:2])
-        knee_angle = calculate_angle(hip, knee, ankle)
-        features.append(knee_angle)
-    else:
-        features.append(0)
-    
-    return features
+    elbow_angles = remove_outliers(elbow_angles)
+    knee_angles = remove_outliers(knee_angles)
+    wrist_heights = remove_outliers(wrist_heights)
 
-def initial_phase_classification(keypoints_history: List[Dict[str, List[float]]]) -> List[str]:
-    phases = []
-    elbow_angles = []
-    knee_angles = []
-    wrist_heights = []
-    
-    for keypoints in keypoints_history:
-        if all(k in keypoints for k in ['right_shoulder', 'right_elbow', 'right_wrist']):
-            elbow_angle = calculate_angle(keypoints['right_shoulder'], keypoints['right_elbow'], keypoints['right_wrist'])
-            elbow_angles.append(elbow_angle)
-        else:
-            elbow_angles.append(0)
-        
-        if all(k in keypoints for k in ['right_hip', 'right_knee', 'right_ankle']):
-            knee_angle = calculate_angle(keypoints['right_hip'], keypoints['right_knee'], keypoints['right_ankle'])
-            knee_angles.append(knee_angle)
-        else:
-            knee_angles.append(0)
-        
-        if 'right_wrist' in keypoints:
-            wrist_heights.append(keypoints['right_wrist'][1])
-        else:
-            wrist_heights.append(0)
-    
-    # スムージング（奇数のカーネルサイズを保証）
-    window_size = max(3, len(elbow_angles) // 20)
-    if window_size % 2 == 0:
-        window_size += 1
-    
-    elbow_angles = medfilt(elbow_angles, kernel_size=window_size)
-    knee_angles = medfilt(knee_angles, kernel_size=window_size)
-    wrist_heights = medfilt(wrist_heights, kernel_size=window_size)
-    
+    elbow_angles = smooth_angle_data(elbow_angles)
+    knee_angles = smooth_angle_data(knee_angles)
+    wrist_heights = smooth_angle_data(wrist_heights)
+
     total_frames = len(keypoints_history)
     if total_frames < 5:
         return ['Preparation'] * total_frames
@@ -94,16 +26,32 @@ def initial_phase_classification(keypoints_history: List[Dict[str, List[float]]]
     knee_velocity = np.diff(knee_angles)
     wrist_velocity = np.diff(wrist_heights)
 
+    # Preparation終了の検出
     preparation_end = min(np.argmax(np.abs(wrist_velocity[:total_frames//2])), total_frames - 1)
-    backswing_end = min(preparation_end + np.argmin(wrist_heights[preparation_end:]), total_frames - 1)
-    loading_end = min(backswing_end + np.argmax(knee_angles[backswing_end:]), total_frames - 1)
-    forward_swing_start = min(loading_end + np.argmin(elbow_angles[loading_end:]), total_frames - 1)
-    
-    # Impact検出の改善
+
+    # Backswing終了の検出（手首が最も低い位置）
+    backswing_end = preparation_end + np.argmin(wrist_heights[preparation_end:])
+
+    # Loading終了の検出（膝の角度が最大）
+    loading_end = backswing_end + np.argmax(knee_angles[backswing_end:])
+
+    # Forward Swing開始の検出（肘の角度が最小）
+    forward_swing_start = loading_end + np.argmin(elbow_angles[loading_end:])
+
+    # Impact検出の改善（手首の高さが最大かつ肘の角速度が最大）
     remaining_frames = total_frames - forward_swing_start
     if remaining_frames > 1:
-        forward_swing_velocity = elbow_velocity[forward_swing_start:forward_swing_start + remaining_frames]
-        impact_frame = forward_swing_start + np.argmax(forward_swing_velocity)
+        wrist_height_peaks, _ = find_peaks(wrist_heights[forward_swing_start:])
+        elbow_velocity_peaks, _ = find_peaks(elbow_velocity[forward_swing_start:])
+        
+        if len(wrist_height_peaks) > 0 and len(elbow_velocity_peaks) > 0:
+            impact_candidates = set(wrist_height_peaks).intersection(set(elbow_velocity_peaks))
+            if impact_candidates:
+                impact_frame = forward_swing_start + min(impact_candidates)
+            else:
+                impact_frame = forward_swing_start + min(wrist_height_peaks[0], elbow_velocity_peaks[0])
+        else:
+            impact_frame = forward_swing_start + np.argmax(wrist_heights[forward_swing_start:])
     else:
         impact_frame = forward_swing_start
 
@@ -111,32 +59,24 @@ def initial_phase_classification(keypoints_history: List[Dict[str, List[float]]]
     phase_boundaries = [0, preparation_end, backswing_end, loading_end, forward_swing_start, impact_frame, total_frames]
     phase_names = ['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through']
 
+    phases = []
     for i in range(len(phase_boundaries) - 1):
         phases.extend([phase_names[i]] * (phase_boundaries[i+1] - phase_boundaries[i]))
 
-    # デバッグ情報
-    print(f"Total frames: {total_frames}")
-    print(f"Window size: {window_size}")
-    print(f"Preparation end: {preparation_end}")
-    print(f"Backswing end: {backswing_end}")
-    print(f"Loading end: {loading_end}")
-    print(f"Forward swing start: {forward_swing_start}")
-    print(f"Impact frame: {impact_frame}")
+    # フェーズのスムージング
+    phases = smooth_phases(phases)
 
     return phases
 
-def train_phase_classifier(keypoints_history: List[Dict[str, List[float]]], phases: List[str]) -> RandomForestClassifier:
-    X = [extract_features(keypoints) for keypoints in keypoints_history]
-    y = phases
+def smooth_phases(phases: List[str], window_size: int = 5) -> List[str]:
+    if not phases:
+        return []
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    phase_to_num = {phase: i for i, phase in enumerate(['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through'])}
+    num_phases = [phase_to_num[phase] for phase in phases]
     
-    clf = RandomForestClassifier(n_estimators=100, random_state=42)
-    clf.fit(X_train, y_train)
+    # メディアンフィルタを適用
+    smoothed_num_phases = medfilt(num_phases, kernel_size=min(window_size, len(num_phases)))
     
-    y_pred = clf.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"Phase classifier accuracy: {accuracy:.2f}")
-    
-    dump(clf, 'phase_classifier.joblib')
-    return clf
+    num_to_phase = {i: phase for phase, i in phase_to_num.items()}
+    return [num_to_phase[int(num)] for num in smoothed_num_phases]
