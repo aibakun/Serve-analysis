@@ -5,7 +5,7 @@ import yaml
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from serve_analysis.video_processor import process_video, get_video_info
+from serve_analysis.video_processor import analyze_and_visualize_serve
 from serve_analysis.phase_classifier import analyze_serve_phases
 from serve_analysis.visualizer import visualize_joint_angles, visualize_phase_angles
 from serve_analysis.report_generator import generate_focused_html_report
@@ -32,9 +32,9 @@ def main():
         setup_tfhub()
         
         video_path = config['video_path']
+        output_video_path = "serve_analysis_with_overlay.mp4"
         
-        keypoints_history = process_video(video_path)
-        phases = analyze_serve_phases(keypoints_history)
+        keypoints_history, phases = analyze_and_visualize_serve(video_path, output_video_path)
         
         # 角度データの計算と前処理
         elbow_angles = [calculate_angle(kp['right_shoulder'], kp['right_elbow'], kp['right_wrist']) for kp in keypoints_history]

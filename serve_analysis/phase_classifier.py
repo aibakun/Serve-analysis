@@ -26,42 +26,38 @@ def analyze_serve_phases(keypoints_history: List[Dict[str, List[float]]]) -> Lis
     knee_velocity = np.diff(knee_angles)
     wrist_velocity = np.diff(wrist_heights)
 
-    # Preparation終了の検出
-    preparation_end = min(np.argmax(np.abs(wrist_velocity[:total_frames//2])), total_frames - 1)
+    # Preparation終了の検出（手首の下降速度が最大）
+    preparation_end = min(np.argmin(wrist_velocity[:total_frames//2]), total_frames - 1)
 
     # Backswing終了の検出（手首が最も低い位置）
     backswing_end = preparation_end + np.argmin(wrist_heights[preparation_end:])
 
-    # Loading終了の検出（膝の角度が最大）
-    loading_end = backswing_end + np.argmax(knee_angles[backswing_end:])
+    # Loading終了の検出（膝の角度が最小）
+    loading_end = backswing_end + np.argmin(knee_angles[backswing_end:])
 
-    # Forward Swing開始の検出（肘の角度が最小）
-    forward_swing_start = loading_end + np.argmin(elbow_angles[loading_end:])
+    # Forward Swing開始の検出（肘の角速度が正に最大）
+    forward_swing_start = loading_end + np.argmax(elbow_velocity[loading_end:])
 
-    # Impact検出の改善（手首の高さが最大かつ肘の角速度が最大）
-    remaining_frames = total_frames - forward_swing_start
-    if remaining_frames > 1:
-        wrist_height_peaks, _ = find_peaks(wrist_heights[forward_swing_start:])
-        elbow_velocity_peaks, _ = find_peaks(elbow_velocity[forward_swing_start:])
-        
-        if len(wrist_height_peaks) > 0 and len(elbow_velocity_peaks) > 0:
-            impact_candidates = set(wrist_height_peaks).intersection(set(elbow_velocity_peaks))
-            if impact_candidates:
-                impact_frame = forward_swing_start + min(impact_candidates)
-            else:
-                impact_frame = forward_swing_start + min(wrist_height_peaks[0], elbow_velocity_peaks[0])
-        else:
-            impact_frame = forward_swing_start + np.argmax(wrist_heights[forward_swing_start:])
-    else:
-        impact_frame = forward_swing_start
+    # Impact検出の改善（手首の高さが最大）
+    impact_range = wrist_heights[forward_swing_start:]
+    impact_frame = forward_swing_start + np.argmax(impact_range)
+
+    # Impact の範囲を制限（前後2フレーム）
+    impact_start = max(impact_frame - 2, forward_swing_start)
+    impact_end = min(impact_frame + 2, total_frames - 1)
+
+    # Follow Through の終了（インパクト後、手首の高さが最初の極小値になる点）
+    follow_through_end = impact_end + 1
+    while follow_through_end < total_frames - 1 and wrist_heights[follow_through_end] > wrist_heights[follow_through_end + 1]:
+        follow_through_end += 1
 
     # フェーズの割り当て
-    phase_boundaries = [0, preparation_end, backswing_end, loading_end, forward_swing_start, impact_frame, total_frames]
+    phase_boundaries = [0, preparation_end, backswing_end, loading_end, forward_swing_start, impact_start, impact_end, follow_through_end, total_frames]
     phase_names = ['Preparation', 'Backswing', 'Loading', 'Forward Swing', 'Impact', 'Follow Through']
 
     phases = []
     for i in range(len(phase_boundaries) - 1):
-        phases.extend([phase_names[i]] * (phase_boundaries[i+1] - phase_boundaries[i]))
+        phases.extend([phase_names[min(i, len(phase_names)-1)]] * (phase_boundaries[i+1] - phase_boundaries[i]))
 
     # フェーズのスムージング
     phases = smooth_phases(phases)

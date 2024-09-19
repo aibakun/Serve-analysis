@@ -1,7 +1,7 @@
 
     <html>
     <head>
-        <title>Focused Tennis Serve Analysis Report</title>
+        <title>Tennis Serve Analysis Report: Elbow and Knee Angles</title>
         <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
             h1, h2 { color: #333; }
@@ -12,16 +12,20 @@
         </style>
     </head>
     <body>
-        <h1>Focused Tennis Serve Analysis Report</h1>
+        <h1>Tennis Serve Analysis Report: Elbow and Knee Angles</h1>
 
-        <h2>Key Serve Metrics</h2>
+        <h2>Serve Phases</h2>
         <table>
-            <tr><th>Metric</th><th>Value</th><th>Unit</th></tr>
-    <tr><td>Maximum Knee Flexion</td><td>0.00</td><td>degrees</td></tr><tr><td>Maximum Elbow Flexion</td><td>0.00</td><td>degrees</td></tr><tr><td>Maximum Hip-Shoulder Separation</td><td>0.00</td><td>cm</td></tr><tr><td>Serve Speed</td><td>0.00</td><td>km/h</td></tr>
+            <tr><th>Phase</th><th>Frames</th></tr>
+    <tr><td>Preparation</td><td>0 - 89</td></tr><tr><td>Backswing</td><td>90 - 144</td></tr><tr><td>Forward Swing</td><td>145 - 159</td></tr><tr><td>Impact</td><td>160 - 198</td></tr><tr><td>Follow Through</td><td>199 - 207</td></tr>
+        <h2>Joint Angle Statistics by Phase</h2>
+        <table>
+            <tr><th>Phase</th><th>Joint</th><th>Min Angle</th><th>Max Angle</th><th>Mean Angle</th><th>Std Dev</th></tr>
+    <tr><td>Preparation</td><td>Elbow</td><td>94.70</td><td>141.46</td><td>123.48</td><td>11.61</td></tr><tr><td>Preparation</td><td>Knee</td><td>46.98</td><td>83.68</td><td>58.32</td><td>9.26</td></tr><tr><td>Backswing</td><td>Elbow</td><td>94.01</td><td>160.93</td><td>125.18</td><td>16.09</td></tr><tr><td>Backswing</td><td>Knee</td><td>0.53</td><td>93.75</td><td>32.39</td><td>22.00</td></tr><tr><td>Forward Swing</td><td>Elbow</td><td>103.97</td><td>142.12</td><td>121.00</td><td>11.09</td></tr><tr><td>Forward Swing</td><td>Knee</td><td>57.20</td><td>119.62</td><td>95.08</td><td>16.76</td></tr><tr><td>Impact</td><td>Elbow</td><td>107.46</td><td>155.75</td><td>129.21</td><td>13.56</td></tr><tr><td>Impact</td><td>Knee</td><td>83.87</td><td>112.41</td><td>97.30</td><td>9.42</td></tr><tr><td>Follow Through</td><td>Elbow</td><td>146.20</td><td>155.03</td><td>150.88</td><td>2.79</td></tr><tr><td>Follow Through</td><td>Knee</td><td>110.56</td><td>133.51</td><td>117.78</td><td>7.39</td></tr>
         </table>
 
         <h2>Visualizations</h2>
-        <img src="focused_serve_metrics.png" alt="Focused Serve Metrics">
+    <img src="joint_angles.png" alt="Serve Analysis Visualization"><img src="phase_angles.png" alt="Serve Analysis Visualization">
     </body>
     </html>
     
