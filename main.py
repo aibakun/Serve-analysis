@@ -7,7 +7,7 @@ import tensorflow_hub as hub
 
 from serve_analysis.video_processor import analyze_and_visualize_serve
 from serve_analysis.phase_classifier import analyze_serve_phases
-from serve_analysis.visualizer import visualize_joint_angles, visualize_phase_angles
+from serve_analysis.visualizer import visualize_joint_angles
 from serve_analysis.report_generator import generate_focused_html_report
 from serve_analysis.utils import remove_outliers, smooth_angle_data, calculate_angle
 
@@ -47,9 +47,8 @@ def main():
         knee_angles = smooth_angle_data(knee_angles)
         
         visualize_joint_angles(elbow_angles, knee_angles, phases, "joint_angles.png")
-        visualize_phase_angles(elbow_angles, knee_angles, phases, "phase_angles.png")
         
-        generate_focused_html_report(phases, elbow_angles, knee_angles, ["joint_angles.png", "phase_angles.png"])
+        generate_focused_html_report(phases, elbow_angles, knee_angles, ["joint_angles.png"])
         
         logging.info("Processing completed. Results are saved in 'focused_serve_analysis_report.html' and individual graphs.")
     except Exception as e:

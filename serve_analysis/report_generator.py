@@ -26,16 +26,6 @@ def generate_focused_html_report(phases: List[str], elbow_angles: List[float], k
     <body>
         <h1>Tennis Serve Analysis Report: Elbow and Knee Angles</h1>
 
-        <h2>Serve Phases</h2>
-        <table>
-            <tr><th>Phase</th><th>Frames</th></tr>
-    """
-    
-    phase_starts = [0] + [i for i in range(1, len(phases)) if phases[i] != phases[i-1]]
-    for start, end in zip(phase_starts, phase_starts[1:] + [len(phases)]):
-        html_content += f"<tr><td>{phases[start]}</td><td>{start} - {end-1}</td></tr>"
-    
-    html_content += """
         <h2>Joint Angle Statistics by Phase</h2>
         <table>
             <tr><th>Phase</th><th>Joint</th><th>Min Angle</th><th>Max Angle</th><th>Mean Angle</th><th>Std Dev</th></tr>

@@ -35,32 +35,6 @@ def visualize_joint_angles(elbow_angles: List[float], knee_angles: List[float], 
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-def visualize_phase_angles(elbow_angles: List[float], knee_angles: List[float], phases: List[str], output_path: str):
-    phase_angles = {phase: {'Elbow': [], 'Knee': []} for phase in set(phases)}
-    
-    for i, phase in enumerate(phases):
-        phase_angles[phase]['Elbow'].append(elbow_angles[i])
-        phase_angles[phase]['Knee'].append(knee_angles[i])
-    
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 20))
-    
-    for phase, angles in phase_angles.items():
-        ax1.boxplot(angles['Elbow'], positions=[list(phase_angles.keys()).index(phase)], labels=[phase])
-        ax2.boxplot(angles['Knee'], positions=[list(phase_angles.keys()).index(phase)], labels=[phase])
-    
-    ax1.set_title('Elbow Angle by Serve Phase', fontsize=14)
-    ax1.set_ylabel('Angle (degrees)', fontsize=12)
-    ax2.set_title('Knee Angle by Serve Phase', fontsize=14)
-    ax2.set_ylabel('Angle (degrees)', fontsize=12)
-    ax2.set_xlabel('Serve Phase', fontsize=12)
-    
-    ax1.tick_params(axis='x', rotation=45)
-    ax2.tick_params(axis='x', rotation=45)
-    
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close()
-
 def generate_phase_statistics(elbow_angles: List[float], knee_angles: List[float], phases: List[str]) -> Dict:
     phase_stats = {phase: {'Elbow': [], 'Knee': []} for phase in set(phases)}
     
