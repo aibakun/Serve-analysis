@@ -3,9 +3,9 @@ from typing import List
 from scipy.signal import medfilt, savgol_filter
 
 def calculate_angle(a: List[float], b: List[float], c: List[float]) -> float:
-    a = np.array(a[:2])
-    b = np.array(b[:2])
-    c = np.array(c[:2])
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
     
     ba = a - b
     bc = c - b

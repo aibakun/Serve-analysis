@@ -36,7 +36,6 @@ def main():
         
         keypoints_history, phases = analyze_and_visualize_serve(video_path, output_video_path)
         
-        # 角度データの計算と前処理
         elbow_angles = [calculate_angle(kp['right_shoulder'], kp['right_elbow'], kp['right_wrist']) for kp in keypoints_history]
         knee_angles = [calculate_angle(kp['right_hip'], kp['right_knee'], kp['right_ankle']) for kp in keypoints_history]
         
@@ -58,3 +57,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
