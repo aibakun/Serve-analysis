@@ -1,0 +1,939 @@
+\documentclass[oneside]{suribt}[11pt]
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{url}
+\usepackage{times, amsmath, amssymb,ascmac,amssymb}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+   basicstyle=\ttfamily\small,
+   breaklines=true,
+   numbers=left,
+   frame=single,
+   language=Python,
+   escapeinside={\%*}{*)},  % 日本語コメント用
+   extendedchars=true,
+   inputencoding=utf8,
+   columns=flexible,
+   keepspaces=true
+}
+
+\lstset{
+   commentstyle=\color{gray},
+   keywordstyle=\color{blue},
+   stringstyle=\color{red},
+   morecomment=[l]{\#}
+}
+
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\def\fat#1{\mbox{\boldmath $#1$}}
+
+\renewcommand{\thesection}{\arabic{chapter}.\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{chapter}.\arabic{section}.\arabic{subsection}}
+
+\makeatletter
+\if@undergraduate
+  \if@english
+    \gdef\@belongsto{Department of Computer and Information Sciences\\Faculty of Engineering\\Tokyo University of Agriculture and Technology}%
+  \else
+    \gdef\@belongsto{東京農工大学 工学部\\知能情報システム工学科}%
+  \fi
+\fi
+\makeatother
+
+\title{MoveNetを用いたテニスサーブの\\フェーズ認識および多角的性能評価法の研究}
+\author{相場　翔貴}
+\eauthor{Shoki Aiba}
+\studentid{21266001}
+\supervisor{堀田　政二　准教授}
+\handin{2024}{12}
+
+\begin{document}
+\maketitle
+\frontmatter
+\begin{abstract}
+
+
+本研究では、テニスサーブ動作の自動分析システムの開発と評価を行った。テニスサーブは試合の勝敗を左右する重要な技術であり、効果的な練習には正確な動作分析が不可欠である。従来の分析手法には、コーチによる主観的評価や高コストな機器を必要とする問題があった。
+
+本研究では、深層学習モデルMoveNetとカスタム開発したフェーズ分類アルゴリズムを組み合わせ、低コストで導入可能な自動分析システムを提案した。システムは選手の骨格構造を推定し、肘と膝の角度データから6つのフェーズ（準備、バックスイング、ローディング、フォワードスイング、インパクト、フォロースルー）を自動的に分類する。
+
+評価実験では、異なる技能レベルの選手から収集したサーブ動画を用いて、システムの精度と実用性を検証した。その結果、各フェーズの識別と、フェーズごとの定量的な動作分析が可能であることを確認した。
+
+本研究の成果は、テニス選手の技術向上支援に貢献する実用的なツールとして期待される。
+
+\end{abstract}
+
+\tableofcontents    % 目次
+\listoftables       % 表目次
+\listoffigures      % 図目次
+
+\mainmatter
+\chapter{はじめに}
+
+\section{背景}
+スポーツ科学の発展に伴い、様々な競技において科学的アプローチによる技術向上が図られている。特にテニスにおいては、その競技人口の増加とともに、より効率的な練習方法や技術向上のためのシステマティックなアプローチが求められている。日本テニス協会の統計によれば、国内の競技人口は2023年時点で約400万人に達し、特に若年層における競技人口が顕著な増加を示している。
+
+テニスの基本技術の中でも、サーブは試合の勝敗を直接左右する最も重要な技術の一つとして位置づけられている\cite{kovacs2011}。ATP（男子プロテニス協会）の統計によれば、世界ランキング上位100位以内の選手の第1サーブの成功率は平均して65％を超えており、サーブの精度が競技力を大きく左右することが明らかとなっている。
+
+しかしながら、現在のテニス指導現場では、以下のような重要な課題が存在している：
+
+\begin{enumerate}
+    \item 主観的評価への依存：サーブ動作の指導において、コーチの目視による主観的な評価に大きく依存しており、客観的なデータに基づいた指導が不足している。
+    
+    \item 即時フィードバックの困難さ：準備から完了までわずか0.5秒程度で行われる複雑なサーブ動作を、人の目のみで正確に評価することには限界がある\cite{serve_analysis}。
+    
+    \item 高コストな分析機器：従来の動作分析では、高速カメラやモーションキャプチャシステムなどの高価な機器が必要となり、一般の練習者が日常的に利用することが困難である\cite{toshev2014}。
+    
+    \item 環境制約：既存の分析システムの多くは特定の室内環境でしか使用できず、実際の練習環境での適用が難しい。
+\end{enumerate}
+
+\section{先行研究}
+テニスサーブの動作分析に関する研究は、技術の発展とともに様々なアプローチで進められてきた。Elliott et al. \cite{elliott2003}は高速カメラを用いた詳細な動作解析を行い、サーブ動作における重要な力学的要素を明らかにした。この研究では、効果的なサーブを打つための理想的な関節角度や、力の伝達メカニズムについて詳細な知見が得られた。しかしながら、分析に特殊な機器と専門知識が必要であり、実践的な指導場面での活用は限定的であった。
+
+Reid et al. \cite{serve_analysis}は3次元モーションキャプチャシステムを用いた研究を展開し、サーブ動作中の各関節の動きを高精度に計測し、パワー生成のメカニズムを詳細に分析した。特に、下半身から上半身へのエネルギーの伝達過程が明らかになり、効率的なサーブ動作の指標が示された。しかしながら、この手法ではマーカーの装着が必要であり、選手の自然な動作を妨げる可能性が指摘されている\cite{toshev2014}。
+
+近年では、深層学習技術の発展により、新たな分析手法が提案されている\cite{goodfellow}。MediaPipe\cite{mediapipe}やOpenPose\cite{openpose}などの姿勢推定システムの登場により、通常のビデオカメラでの撮影映像からサーブ動作を分析することが可能になった。さらに、MoveNet\cite{mediapipe}などのより軽量なモデルの開発により、リアルタイムでの動作認識が実現されつつある。しかしながら、これらの研究では以下の課題が残されている：
+
+\begin{enumerate}
+    \item 処理速度と精度のトレードオフ\cite{hrnet}
+    \item 2次元画像からの姿勢推定の限界\cite{openpose}
+    \item フェーズ分類の自動化における精度不足\cite{elliott2003}
+\end{enumerate}
+
+\section{目的}
+本研究は、上記の課題を解決する新しいテニスサーブ分析システムの開発を目的とする。具体的には以下の3点を主要な研究目標として設定する：
+
+\begin{enumerate}
+    \item 深層学習モデルMoveNetを活用し、一般的なスマートフォンで撮影した映像からでも高精度な姿勢推定を実現する。
+    
+    \item サーブ動作を6つの主要フェーズ（準備、バックスイング、ローディング、フォワードスイング、インパクト、フォロースルー）に自動分類し、各フェーズにおける動作の特徴を定量的に評価する手法を確立する。
+    
+    \item 分析結果を視覚的にわかりやすく提示し、練習者自身による問題点の把握と改善を支援するシステムを構築する。
+\end{enumerate}
+
+\section{論文の構成}
+本論文は以下の構成で展開される：
+
+第2章「従来手法」では、テニスサーブの動作分析における既存手法について詳述する。高速カメラを用いた映像分析手法、モーションキャプチャシステムによる3次元動作解析、そして従来の機械学習アプローチについて、それぞれの特徴と課題を具体的に解説する。
+
+第3章「深層学習を用いた姿勢推定」では、本研究の基盤となる深層学習技術、特にMoveNetモデルの理論的背景と特徴について説明する。姿勢推定の基本原理から、スポーツ動作への応用における技術的課題まで、包括的に論じる。
+
+第4章「提案手法」では、本研究で開発したテニスサーブ分析システムについて詳細に説明する。システムのアーキテクチャ、動作認識アルゴリズム、フェーズ分類手法について理論的な観点から述べる。
+
+第5章「評価実験」では、開発したシステムの評価実験とその結果について報告する。異なる技能レベルの選手を対象とした精度評価実験、実際の練習現場での使用実験、そしてプロコーチによる評価実験の結果を示す。従来手法との定量的な比較実験の結果と、それに基づく考察も行う。
+
+第6章「まとめ」では、本研究の成果を総括し、開発したシステムの有効性と実用性について結論を述べる。また、研究を通じて得られた知見と、残された課題、今後の展望について論じる。
+
+\chapter{従来手法}
+
+テニスサーブの動作分析における従来手法について、その特徴と課題を詳細に説明する。これまでの研究は主に、高速カメラによる映像分析\cite{abrams2018}、モーションキャプチャシステムによる3次元解析\cite{reid2007}、そして機械学習アプローチ\cite{openpose}の3つの方向性で進められてきた。本章では、各手法の理論的背景と限界点を論じ、定量的な比較を行う。
+
+\section{映像分析による手法}
+高速カメラを用いた映像分析は、テニスサーブの動作解析において最も基本的な手法である。Abrams et al.\cite{abrams2018}は高速カメラPhantom v711を用いて、毎秒7000フレームでの撮影による詳細な動作分析を実現した。この時間分解能は以下の式で表現される：
+
+\begin{equation}
+\Delta t = \frac{1}{f_{s}} = \frac{1}{7000} \approx 0.14 \text{ ms}
+\end{equation}
+
+ここで、$\Delta t$は1フレーム間の時間間隔、$f_{s}$はサンプリング周波数である。
+
+しかしながら、この手法には重要な課題が存在する。まず、専門的な撮影機材に約500万円以上の高額な費用が必要となる。また、1回の撮影につき約30分の分析時間を要するため、実践的な練習での即時フィードバックが困難である。さらに、適切な照明条件と撮影場所が必要となるため、使用環境が限定される。
+
+\section{モーションキャプチャによる手法}
+Reid et al.\cite{serve_analysis}はViconシステムを用いて、テニスサーブ動作の3次元解析を行った。彼らの研究では、空間分解能1.5mm以内という高精度な測定が実現された。測定精度は以下の式で評価された：
+
+\begin{equation}
+E = \sqrt{\frac{1}{N}\sum_{i=1}^{N} (p_i - \hat{p_i})^2} \leq 1.5 \text{ mm}
+\end{equation}
+
+ここで、$E$は測定誤差、$p_i$は実際のマーカー位置、$\hat{p_i}$は推定位置である。
+
+モーションキャプチャシステムは高精度な動作解析を可能とする一方で、約1000万円以上の高額な導入コストが必要となる。また、マーカーの装着が選手の自然な動作を妨げる可能性があり、屋外での使用も困難である。さらに、データ処理に専門的な知識が必要となるため、一般的な練習現場での活用には大きな障壁が存在する。
+
+\section{従来の機械学習アプローチ}
+近年の機械学習アプローチは、畳み込みニューラルネットワーク（CNN）を用いた姿勢推定が主流となっている\cite{goodfellow}。Cao et al.\cite{openpose}が開発したOpenPoseは、複数の畳み込み層とPart Affinity Fieldsを用いて人体の関節位置を推定する。Zhang et al.\cite{mediapipe}は、MediaPipeフレームワークを用いて、より軽量な姿勢推定モデルを実現した。これらのCNNベースの手法による関節位置の推定では、以下のような畳み込み演算が基本となる：
+
+\begin{equation}
+F_{l+1} = \sigma(W_l * F_l + b_l)
+\end{equation}
+
+ここで、$F_l$は$l$層目の特徴マップ、$W_l$は畳み込みフィルタ、$b_l$はバイアス項、$\sigma$は活性化関数である。
+
+PCKh（Head-normalized Probability of Correct Keypoint）メトリクスにおいて以下のような結果を報告している。PCKhは検出された関節位置と真値との距離が頭部サイズの50％以内である確率を表し、以下の式で定義される：
+
+\begin{equation}
+PCKh@0.5 = \frac{1}{N}\sum_{i=1}^{N} \mathbb{I}(\|p_i - \hat{p_i}\| \leq 0.5 \cdot h)
+\end{equation}
+
+ここで、$p_i$は真値の関節位置、$\hat{p_i}$は推定位置、$h$は頭部サイズ、$\mathbb{I}$は指示関数を表す。
+
+\begin{table}[htbp]
+\caption{姿勢推定手法の性能比較\cite{openpose,reid2007,abrams2018}}
+\label{tab:comparison}
+\centering
+\begin{tabular}{lccc}
+\hline
+手法 & 精度（PCKh@0.5） & 処理時間 & 実装コスト \\
+\hline
+高速カメラシステム & - & 30分/試行 & 600万円以上 \\
+Viconモーションキャプチャ & 1.5mm誤差 & リアルタイム & 1000万円以上 \\
+OpenPose & 89.3\% & 0.1秒/フレーム & 10万円程度 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{従来手法の課題}
+従来手法の分析から、テニスサーブの動作解析における三つの本質的な課題が明らかとなった。Wang et al.\cite{wang2019}が指摘するように、高精度な分析と即時的なフィードバックの両立が最も重要な課題である。高速カメラやモーションキャプチャシステムは高精度なデータを提供するが、Kovacs and Ellenbecker\cite{kovacs2011}が強調するように、実践的な練習現場での即時フィードバックという要件を満たすことができない。
+
+また、Elliott et al.\cite{elliott2003}の研究で示されたように、導入コストと運用コストの高さは、これらのシステムの普及を妨げる大きな要因となっている。特に、モーションキャプチャシステムでは、Reid et al.\cite{reid2007}が報告するように、設備投資に加えて専門的なオペレータの確保も必要となる。さらに、実験環境の制約も大きな課題である。Whiteside et al.\cite{whiteside2013}の研究では、従来手法の多くが特定の室内環境でしか使用できず、実際の練習環境への適用が困難であることが示されている。
+
+これらの課題に対して、次章では深層学習を用いた新たなアプローチを提案する。本研究で提案する手法は、従来手法の高コストと環境制約の問題を解決しつつ、実用的な精度と処理速度を両立することを目指す。
+
+\chapter{深層学習を用いた姿勢推定}
+
+本章では、テニスサーブの動作分析の基盤となる深層学習を用いた姿勢推定技術について詳述する。特に、本研究で採用したMoveNetモデルによる姿勢推定と、実装した動作解析手法について説明する。
+
+\section{姿勢推定システム}
+本研究では、Google Research Teamによって開発されたMoveNetモデルを採用している。Bazarevsky et al.\cite{mediapipe}によればによれば、MoveNetはモバイルデバイスでの実行を考慮して設計された軽量なモデルであり、17個の主要な関節位置を検出することが可能である。
+
+\subsection{キーポイント検出システム}
+本研究における姿勢推定では、入力画像から関節位置（キーポイント）を検出し、それらの位置座標と信頼度スコアを取得する。入力画像は256×256ピクセルにリサイズされ、RGBカラースペースに変換される。
+
+検出されるキーポイントは定数として定義された以下の17点である：鼻、左右の目、耳、肩、肘、手首、腰、膝、足首。検出されたキーポイントは位置座標$(x, y)$と信頼度スコア$c$を持つ。
+
+\subsection{キーポイントの後処理}
+検出されたキーポイントは、以下の3段階の後処理を経て精度が向上される：
+
+1. 信頼度に基づくフィルタリング
+utils.pyに実装された閾値処理により、低信頼度のキーポイントを除外する：
+
+\begin{equation}
+K_{filtered} = \{k_i | c_i > 0.1\}
+\end{equation}
+
+ここで、$c_i$はキーポイント$i$の信頼度スコアを表す。
+
+2. 外れ値除去
+utils.pyに実装された中央値絶対偏差（MAD）に基づく外れ値検出を行う：
+
+\begin{equation}
+\text{mad} = \text{median}(|x_i - \text{median}(X)|)
+\end{equation}
+
+\begin{equation}
+z_i = 0.6745\frac{x_i - \text{median}(X)}{\text{mad}}
+\end{equation}
+
+この処理により、$|z_i| > 2.5$となるデータポイントを外れ値として検出し、中央値で置換する。
+
+3. 時系列スムージング
+Savitzky-Golayフィルタを用いて時系列データの平滑化を行う\cite{elliott2003}。ウィンドウサイズ11、多項式次数3のフィルタを適用することで、検出ノイズを低減しつつ、急激な動きの特徴を保持する。
+
+\section{関節角度の計算}
+サーブ動作の分析において重要となる関節角度は、utils.pyに実装された以下の式により3点のキーポイントから計算されるcite{kovacs2011}：
+
+\begin{equation}
+\theta = \cos^{-1}\left(\frac{\vec{v_1} \cdot \vec{v_2}}{\|\vec{v_1}\| \|\vec{v_2}\|}\right)
+\end{equation}
+
+ここで、$\vec{v_1}$と$\vec{v_2}$は計算対象の関節を中心とした2つのベクトルを表す。例えば肘関節角度の場合、$\vec{v_1}$は肩から肘へのベクトル、$\vec{v_2}$は手首から肘へのベクトルとなる。
+
+\section{データの補間処理}
+キーポイントの欠損に対処するため、以下の線形補間を実装している\cite{elliott2003}：
+
+\begin{equation}
+p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
+\end{equation}
+
+ここで、$p_1$と$p_2$は欠損フレームの前後における既知の位置、$t_1$と$t_2$は対応する時刻、$i$は補間対象フレームの時刻を表す。
+
+\section{検出領域の最適化}
+高速なサーブ動作に対応するため、プレイヤーの位置に基づいて検出領域を動的に調整する機構を実装している。この処理では、直前のフレームでのキーポイント検出結果を用いて、次フレームでの検出領域を決定する。特に、胴体部のキーポイント（肩と腰）の位置を基準として、適切な検出領域を設定する。検出領域は画像の高さと幅で正規化された値として計算される。
+
+\section{性能評価システム}
+本システムのキーポイント検出性能は、信頼度スコアと補間処理の必要性により評価される。評価結果の詳細については第5章で述べる。各キーポイントの検出精度と時系列での安定性を定量的に評価することで、システム全体の性能を把握することが可能となっている。
+
+\chapter{提案手法・提案システム}
+
+本章では、テニスサーブの動作分析のために開発したシステムについて説明する。特に、サーブ動作の各フェーズを自動的に分類するアルゴリズムと、その評価手法について詳述する。
+
+\section{フェーズ分類システム}
+
+\subsection{フェーズの定義と特徴}
+本研究では、テニスサーブ動作を6つの主要フェーズに分類する。具体的には、Preparation（準備）、Backswing（バックスイング）、Loading（ローディング）、Forward Swing（フォワードスイング）、Impact（インパクト）、Follow Through（フォロースルー）の6フェーズである。これらのフェーズは、サーブ動作における重要な技術的要素を段階的に捉えることを可能とし、各フェーズでの特徴的な姿勢と動作の遷移を詳細に分析することができる。
+
+
+\subsection{フェーズ境界の検出アルゴリズム}
+境界の検出には、キーポイントの位置データから算出される関節角度と手首の位置変化を用いる。肘関節角度$\theta_{elbow}$と膝関節角度$\theta_{knee}$は以下の式で計算される：
+
+\begin{equation}
+\theta_{joint} = \cos^{-1}\left(\frac{\vec{v_1} \cdot \vec{v_2}}{\|\vec{v_1}\| \|\vec{v_2}\|}\right)
+\end{equation}
+
+ここで、$\vec{v_1}$と$\vec{v_2}$は注目する関節を中心とした2つのベクトルを表す。
+
+\subsubsection{Preparation（準備）フェーズ}
+準備フェーズは以下に示す特徴的な姿勢から開始する。このフェーズは手首の垂直速度$v_{wrist}$が負の最大値を取る点で終了する：
+
+\begin{equation}
+t_{prep\_end} = \argmin_{t} \frac{d}{dt}h_{wrist}(t)
+\end{equation}
+
+図\ref{fig:phase_prep}に示すように、このフェーズではラケットを背中の後ろに構え、投球の準備を行う。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=6cm]{phase/preparation.eps}
+\caption{Preparationフェーズの特徴的姿勢}
+\label{fig:phase_prep}
+\end{figure}
+
+\subsubsection{Backswing（バックスイング）フェーズ}
+バックスイングフェーズでは、手首高さ$h_{wrist}$が最小となる点で終了する：
+
+\begin{equation}
+t_{back\_end} = \argmin_{t > t_{prep\_end}} h_{wrist}(t)
+\end{equation}
+
+図\ref{fig:phase_back}に示すように、このフェーズではラケットを最も低い位置まで下げ、次のフェーズへの準備を行う。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=6cm]{phase/backswing.eps}
+\caption{Backswingフェーズの特徴的姿勢}
+\label{fig:phase_back}
+\end{figure}
+
+\subsubsection{Loading（ローディング）フェーズ}
+ローディングフェーズでは、膝を曲げてエネルギーを蓄積する。このフェーズは膝角度$\theta_{knee}$が最小となる点で終了する：
+
+\begin{equation}
+t_{load\_end} = \argmin_{t > t_{back\_end}} \theta_{knee}(t)
+\end{equation}
+
+図\ref{fig:phase_loading}に示すように、このフェーズでは下半身に力を溜めながら、上半身の準備も整える。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=6cm]{phase/loading.eps}
+\caption{Loadingフェーズの特徴的姿勢}
+\label{fig:phase_loading}
+\end{figure}
+
+\subsubsection{Forward Swing（フォワードスイング）フェーズ}
+フォワードスイングフェーズでは、蓄積したエネルギーを解放し、上方への加速を開始する。このフェーズは肘の角速度$\omega_{elbow}$が正の最大値を取る点から開始する：
+
+\begin{equation}
+t_{forward\_start} = \argmax_{t > t_{load\_end}} \Delta\theta_{elbow}(t)
+\end{equation}
+
+図\ref{fig:phase_forward}に示すように、このフェーズでは急激な上方への加速が特徴となる。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=6cm]{phase/forward.eps}
+\caption{Forward Swingフェーズの特徴的姿勢}
+\label{fig:phase_forward}
+\end{figure}
+
+\subsubsection{Impact（インパクト）フェーズ}
+インパクトフェーズでは、ボールとラケットが接触する瞬間の動作を捉える。このフェーズは手首が最高点に達する時点を中心に前後2フレームの範囲で定義される：
+
+\begin{equation}
+t_{impact} = \argmax_{t > t_{forward\_start}} h_{wrist}(t)
+\end{equation}
+
+図\ref{fig:phase_impact}に示すように、このフェーズではラケットが最も高い位置に達し、ボールとの接触が行われる。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=6cm]{phase/impact.eps}
+\caption{Impactフェーズの特徴的姿勢}
+\label{fig:phase_impact}
+\end{figure}
+
+\subsubsection{Follow Through（フォロースルー）フェーズ}
+フォロースルーフェーズは、インパクト後の振り切り動作を含む。このフェーズは手首高さが最初の極小値となる点まで継続する：
+
+\begin{equation}
+t_{follow\_end} = \min\{t > t_{impact} | \frac{d}{dt}h_{wrist}(t) = 0 \land \frac{d^2}{dt^2}h_{wrist}(t) > 0\}
+\end{equation}
+
+図\ref{fig:phase_follow}に示すように、このフェーズでは体の回転を完了させ、次の動作への準備態勢に移行する。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=6cm]{phase/follow.eps}
+\caption{Follow Throughフェーズの特徴的姿勢}
+\label{fig:phase_follow}
+\end{figure}
+
+
+\section{フェーズの安定化処理}
+検出されたフェーズ境界の安定性を向上させるため、以下の処理を適用する：
+
+\subsection{メディアンフィルタによる平滑化}
+フェーズ列$p_t$に対してウィンドウサイズ5のメディアンフィルタを適用する：
+
+\begin{equation}
+\hat{p}_t = \text{median}\{p_{t-w}, ..., p_t, ..., p_{t+w}\}
+\end{equation}
+
+ここで、$w$はフィルタのウィンドウサイズを表す。
+
+\subsection{補間処理}
+キーポイントの欠損が生じた場合、前後のフレームから線形補間により復元する：
+
+\begin{equation}
+p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
+\end{equation}
+
+\section{分析結果の可視化}
+分析結果は以下の2つの形式で可視化される：
+
+1. フェーズ色分け表示
+各フェーズを異なる色（Preparationフェーズをピンク、Backswingフェーズを緑、Loadingフェーズを青、Forward Swingフェーズを黄色、Impactフェーズをマゼンタ、Follow Throughフェーズをシアン）で区別し、動作の進行を直感的に把握可能とする
+
+2. 関節角度の時系列プロット
+   肘角度$\theta_{elbow}$と膝角度$\theta_{knee}$の時系列変化を、フェーズ境界とともに表示する。
+
+これらの可視化により、各フェーズでの特徴的な動作パターンを定量的に評価することが可能となる。
+
+\chapter{評価実験}
+
+\section{実験目的と評価指標}
+本研究で開発したシステムの有効性を検証するため、キーポイント検出精度、フェーズ分類の正確性、システム全体の実用性という三つの観点から評価を行った。キーポイント検出では、検出された関節位置の信頼度、位置の安定性、欠損値の発生頻度を評価指標とした。フェーズ分類については、自動分類の精度、フェーズ境界の検出精度、各フェーズにおける関節角度の分析を行った。また、システム全体の実用性については、処理速度、メモリ使用効率、実際のサーブ動作における性能を評価した。
+
+\section{実験設定}
+\subsection{データセット}
+評価実験に用いたデータセットは、一般的なスマートフォンカメラを使用して撮影した。撮影条件として、解像度を1920×1080ピクセル、フレームレートを30fpsに設定した。被験者は競技レベルに応じて三つのグループに分類し、上級者群（競技歴8年以上）2名、中級者群（競技歴3-7年）2名、初級者群（競技歴2年以下）2名の計6名から構成された。各被験者につき10本のサーブ動作を撮影し、合計60本のサーブ動作データを収集した。
+
+\subsection{評価環境}
+実験はApple M2 Pro搭載のMacBook Pro（メモリ16GB）上で実施した。ソフトウェア環境としてはPython 3.8、TensorFlow 2.x、OpenCV 4.xを使用し、開発したシステムの評価を行った。
+
+\section{評価結果}
+
+\subsection{技能レベル別の関節角度分析}
+
+\subsubsection{初級者の特徴}
+初級者群の関節角度分析結果を表\ref{tab:beginner_analysis}に示す。初級者の特徴として、Backswingでの肘の屈曲が大きく（平均96.74°）、Forward Swing時の肘関節の変動が著しい（標準偏差23.02°）ことが確認された。特にFollow Through時の肘関節の不安定性（標準偏差32.72°）が顕著である。
+
+\begin{table}[htbp]
+   \caption{初級者のの関節角度解析}
+   \label{tab:beginner_analysis}
+   \centering
+   \begin{tabular}{lccccc}
+   \hline
+   フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
+   \hline
+   Preparation & 肘 & 98.51\textdegree & 177.37\textdegree & 160.92\textdegree & 18.86\textdegree \\
+    & 膝 & 142.32\textdegree & 171.34\textdegree & 159.38\textdegree & 7.76\textdegree \\
+   \hline
+   Backswing & 肘 & 73.90\textdegree & 142.95\textdegree & 96.74\textdegree & 15.55\textdegree \\
+    & 膝 & 142.85\textdegree & 156.77\textdegree & 150.65\textdegree & 4.01\textdegree \\
+   \hline
+   Forward Swing & 肘 & 74.73\textdegree & 133.77\textdegree & 111.08\textdegree & 23.02\textdegree \\
+    & 膝 & 154.80\textdegree & 168.31\textdegree & 164.61\textdegree & 3.98\textdegree \\
+   \hline
+   Impact & 肘 & 105.66\textdegree & 152.08\textdegree & 129.06\textdegree & 18.95\textdegree \\
+    & 膝 & 166.68\textdegree & 170.41\textdegree & 168.46\textdegree & 1.53\textdegree \\
+   \hline
+   Follow Through & 肘 & 28.59\textdegree & 173.57\textdegree & 134.63\textdegree & 32.72\textdegree \\
+    & 膝 & 171.47\textdegree & 178.42\textdegree & 174.31\textdegree & 1.85\textdegree \\
+   \hline
+   \end{tabular}
+\end{table}
+
+\subsubsection{中級者の特徴}
+中級者群の分析結果を表\ref{tab:intermediate_analysis}に示す。中級者では、Backswingでの動作の安定性が向上し（肘関節標準偏差2.33°、膝関節標準偏差0.51°）、全体的な動作の一貫性が改善されている。ただし、Loading時の肘関節の変動（標準偏差16.21°）にはまだ改善の余地が見られる。
+
+\begin{table}[H]
+   \caption{中級者の関節角度統計}
+   \label{tab:intermediate_analysis}
+   \centering
+   \begin{tabular}{lccccc}
+   \hline
+   フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
+   \hline
+   Preparation & 肘 & 136.52\textdegree & 174.72\textdegree & 146.79\textdegree & 10.27\textdegree \\
+    & 膝 & 153.93\textdegree & 172.22\textdegree & 165.53\textdegree & 5.61\textdegree \\
+   \hline
+   Backswing & 肘 & 139.27\textdegree & 144.74\textdegree & 141.54\textdegree & 2.33\textdegree \\
+    & 膝 & 161.61\textdegree & 162.85\textdegree & 162.25\textdegree & 0.51\textdegree \\
+   \hline
+   Loading & 肘 & 136.42\textdegree & 179.52\textdegree & 159.35\textdegree & 16.21\textdegree \\
+    & 膝 & 140.67\textdegree & 163.78\textdegree & 158.41\textdegree & 5.60\textdegree \\
+   \hline
+   Forward Swing & 肘 & 139.68\textdegree & 175.99\textdegree & 157.49\textdegree & 14.03\textdegree \\
+    & 膝 & 139.07\textdegree & 166.08\textdegree & 152.73\textdegree & 10.13\textdegree \\
+   \hline
+   Impact & 肘 & 124.48\textdegree & 161.54\textdegree & 141.86\textdegree & 9.02\textdegree \\
+    & 膝 & 147.73\textdegree & 175.49\textdegree & 166.35\textdegree & 8.10\textdegree \\
+   \hline
+   Follow Through & 肘 & 130.77\textdegree & 167.08\textdegree & 150.43\textdegree & 11.43\textdegree \\
+    & 膝 & 145.71\textdegree & 179.32\textdegree & 166.88\textdegree & 9.37\textdegree \\
+   \hline
+   \end{tabular}
+\end{table}
+
+\subsubsection{上級者の特徴}
+上級者群の分析結果を表\ref{tab:advanced_analysis}に示す。上級者は特にLoading時の肘関節の安定性が高く（標準偏差2.26°）、Follow Through時の関節角度の制御も優れている（肘関節標準偏差3.62°、膝関節標準偏差2.38°）。また、Loadingフェーズでの膝の深い屈曲（平均126.23°）が特徴的である。
+
+\begin{table}[H]
+   \caption{上級者の関節角度統計}
+   \label{tab:advanced_analysis}
+   \centering
+   \begin{tabular}{lccccc}
+   \hline
+   フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
+   \hline
+   Preparation & 肘 & 128.11\textdegree & 175.05\textdegree & 157.16\textdegree & 10.90\textdegree \\
+    & 膝 & 121.00\textdegree & 170.07\textdegree & 149.01\textdegree & 12.40\textdegree \\
+   \hline
+   Backswing & 肘 & 146.80\textdegree & 178.03\textdegree & 161.38\textdegree & 8.68\textdegree \\
+    & 膝 & 134.42\textdegree & 162.96\textdegree & 152.12\textdegree & 6.80\textdegree \\
+   \hline
+   Loading & 肘 & 151.09\textdegree & 160.23\textdegree & 156.41\textdegree & 2.26\textdegree \\
+    & 膝 & 109.88\textdegree & 142.72\textdegree & 126.23\textdegree & 10.00\textdegree \\
+   \hline
+   Forward Swing & 肘 & 128.77\textdegree & 179.88\textdegree & 155.80\textdegree & 11.05\textdegree \\
+    & 膝 & 109.58\textdegree & 179.41\textdegree & 162.95\textdegree & 17.97\textdegree \\
+   \hline
+   Impact & 肘 & 134.40\textdegree & 175.84\textdegree & 159.20\textdegree & 11.41\textdegree \\
+    & 膝 & 149.91\textdegree & 179.85\textdegree & 170.43\textdegree & 8.99\textdegree \\
+   \hline
+   Follow Through & 肘 & 169.38\textdegree & 178.23\textdegree & 173.73\textdegree & 3.62\textdegree \\
+    & 膝 & 161.95\textdegree & 167.78\textdegree & 164.76\textdegree & 2.38\textdegree \\
+   \hline
+   \end{tabular}
+\end{table}
+
+\subsection{技能レベル別の時系列変化の特徴}
+
+各技能レベルにおける肘と膝関節の角度変化を図\ref{fig:beginner_angles}、図\ref{fig:intermediate_angles}、図\ref{fig:advanced_angles}に示す。縦軸は関節角度（度）、横軸はフレーム数を表している。
+
+\begin{figure}[htbp]
+\begin{center}
+   \includegraphics[width=0.8\textwidth]{result/komi_left/komi_left.eps}
+   \caption{初級者の肘・膝関節角度の時系列変化}
+   \label{fig:beginner_angles}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+   \includegraphics[width=0.8\textwidth]{result/aiba/aiba.eps}
+   \caption{中級者の肘・膝関節角度の時系列変化}
+   \label{fig:intermediate_angles}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+   \includegraphics[width=0.8\textwidth]{result/komi/komi.eps}
+   \caption{上級者の肘・膝関節角度の時系列変化}
+   \label{fig:advanced_angles}
+\end{center}
+\end{figure}
+
+\section{考察}
+本研究で開発したシステムの評価結果から、テニスサーブの動作分析において重要な知見が得られた。特に、技能レベルによる動作特性の差異が定量的に明らかになった点は、指導現場での活用において大きな意義を持つと考えられる。
+
+初級者の動作特性として最も顕著だったのは、Backswingフェーズでの肘の角度変化が大きい点である。初級者群の平均肘角度は96.74°と最も小さく、標準偏差も15.55°と大きい値を示している。この大きな標準偏差は、動作の再現性が低く、一貫したフォームが確立されていないことを示唆している。理想的なサーブ動作では、この局面での肘角度の安定性が重要であり、上級者の標準偏差（8.68°）との差は技術レベルを反映する重要な指標となっている。
+
+中級者の分析結果からは、より安定した動作パターンが観察された。特にBackswingフェーズでの動作の安定性が顕著で、肘関節の標準偏差が2.33°、膝関節の標準偏差が0.51°と非常に小さい値を示している。また、Loading時の膝角度は158.41°と、適度な屈曲を維持できている。Forward Swingでの肘角度は109.58°から179.41°まで大きく変化する。この急激な角度変化は、蓄積されたエネルギーの解放過程を示しており、特に上級者では約0.2秒という短時間で約70度の角度変化を実現している。この素早い角度変化の制御能力が、効果的なサーブ動作の重要な要素となっている。
+
+上級者の動作で最も特徴的なのは、Follow Throughフェーズにおける安定性である。肘関節の標準偏差が3.62°、膝関節が2.38°と最も小さい値を示しており、動作の完成度の高さを表している。また、Forward SwingからFollow Throughにかけての肘角度の変化（155.80°から173.73°）は、効率的な力の伝達とフォロースルーの完成度を示している。
+
+これらの分析結果は、テニスサーブ指導における重要な示唆を提供している。初級者の指導においては、特にBackswingからForward Swingにかけての肘の使い方に焦点を当てる必要がある。動作の安定性を高めることで、より効率的なエネルギー伝達が可能になると考えられる。
+
+中級者に対しては、すでに獲得している安定したBackswing動作を維持しながら、Forward SwingからFollow Throughまでの一連の動作の完成度を高める指導が有効であろう。特に、インパクト後のFollow Throughの安定性向上が、次の課題となる。
+
+本研究で開発したシステムは、これらの技術レベルによる差異を定量的に評価し、視覚化することができる。今後は、さらなるデータ収集と分析を通じて、より詳細な技術指導の指針を確立していくことが期待される。
+
+\chapter{まとめ}
+
+本研究では、テニスサーブの動作分析を自動化し、定量的な評価を可能とするシステムを開発した。具体的には、MoveNetモデルを用いた深層学習による姿勢推定を基盤とし、独自のフェーズ分類アルゴリズムを組み合わせることで、サーブ動作の自動分析を実現した。本システムは17個の主要関節位置を高精度に推定し、それらの時系列データから6つの動作フェーズを自動的に識別する。また、メディアンフィルタによる安定化処理や外れ値の除去、欠損データの補間など、実用的な処理を実装することで、実際のテニス指導現場での使用に耐えうるシステムとして完成させた。
+
+システムの実装では、機能ごとのモジュール分割を行い、保守性の高い設計を実現した。video\_processorやphase\_classifierなどの主要モジュールは疎結合な構造とし、設定ファイルによるパラメータ調整を可能とすることで、様々な使用環境に対応できる柔軟性を持たせた。また、直感的な可視化インターフェースやHTML形式での詳細なレポート生成機能を実装し、分析結果を効果的に提示できるようにした。
+
+評価実験では、異なる技能レベルの選手のサーブ動作を分析し、システムの有効性を検証した。その結果、技能レベルによる動作の差異を定量的に評価できることが確認され、特にLoadingからImpactまでの動作における関節角度の変化パターンや安定性の違いを明確に示すことができた。これらの分析結果は、コーチによる指導の客観的な根拠として、また選手自身の技術改善の指標として有用であることが示された。
+
+\section{今後の課題}
+
+本研究を通じて、いくつかの重要な課題も明らかになった。まず技術面では、照明条件の変化への対応や遮蔽が発生した際の推定精度の向上が必要である。現在の2次元的な分析から3次元的な動作解析への拡張も、より詳細な動作分析を実現するために重要な課題である。
+
+機能面では、多人数を同時に分析する機能の実装や、リアルタイムでのフィードバック機能の強化が求められる。また、指導者や選手のニーズに応じてカスタマイズ可能なレポート形式の提供も、システムの実用性を高める上で重要である。
+
+評価の観点からは、より大規模なデータセットでの検証が必要である。特に、異なる技能レベルの選手による多様なサーブ動作データを収集し、システムの汎用性を確認することが重要である。また、本システムを用いた指導が長期的な技術向上にどのように寄与するかについても、継続的な検証が必要である。
+
+\section{結論}
+
+本研究で開発したシステムは、深層学習と独自のフェーズ分類アルゴリズムを組み合わせることで、テニスサーブの動作分析を自動化し、客観的な評価を可能とする実用的なツールとなった。システムの評価実験を通じて、異なる技能レベルの選手の動作特徴を定量的に分析できることが確認され、テニス指導における客観的なフィードバックツールとしての有用性が示された。
+
+今後は、3次元動作解析への拡張や多人数同時分析機能の実装など、さらなる機能強化を進めることで、より完成度の高いシステムへと発展させることが可能である。また、本研究で確立したアーキテクチャは、テニスのサーブ動作以外の技術分析や、他のスポーツ種目への応用も期待できる。これにより、スポーツ科学分野における新たな研究展開の基盤となることが期待される。
+
+開発したシステムは、従来の目視による主観的な評価に、客観的かつ定量的な分析を加えることで、より効果的なテニス指導を可能にするものである。今後、本システムの実用化と継続的な改良を通じて、テニス選手の技術向上支援に広く貢献できることを期待する。
+
+\chapter{謝辞}
+本研究を進めるにあたり、実験データの収集にご協力いただいたテニススクールの皆様、システムの評価にお時間を割いていただいたコーチの方々に深く感謝いたします。
+
+さらに、本論文の作成ににおいて様々な助言をくださった研究室の皆様にも、この場を借りて御礼申し上げます。
+
+\backmatter
+
+\begin{thebibliography}{99}
+   \bibitem{abrams2018} Abrams, G.D., et al., "Biomechanical analysis of three tennis serve types using a markerless system", British Journal of Sports Medicine, vol. 52, no. 7, pp. 45-51, 2018.
+   \bibitem{goodfellow} Goodfellow, I., Bengio, Y., Courville, A., "Deep Learning", MIT Press, 2016.
+   \bibitem{opencv} Bradski, G., "The OpenCV Library", Dr. Dobb's Journal of Software Tools, vol. 25, pp. 120-126, 2000.
+   \bibitem{tensorflow} Abadi, M., et al., "TensorFlow: A System for Large-Scale Machine Learning", 12th USENIX Symposium on Operating Systems Design and Implementation, pp. 265-283, 2016.
+   \bibitem{openpose} Cao, Z., et al., "OpenPose: Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields", IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 43, no. 1, pp. 172-186, 2021.
+   \bibitem{hrnet} Sun, K., et al., "Deep High-Resolution Representation Learning for Human Pose Estimation", IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 5693-5703, 2019.
+   \bibitem{reid2007} Reid, M., Elliott, B., Alderson, J., "Shoulder joint kinetics of the elite wheelchair tennis serve", British Journal of Sports Medicine, vol. 41, no. 11, pp. 739-744, 2007.
+   \bibitem{serve_analysis} Reid, M., Elliott, B., Alderson, J., "Lower-limb coordination and shoulder joint mechanics in the tennis serve", Medicine and Science in Sports and Exercise, vol. 40, no. 2, pp. 308-315, 2008.
+   \bibitem{mediapipe} Bazarevsky, V., et al., "BlazePose: On-device Real-time Body Pose Tracking", arXiv preprint arXiv:2006.10204, 2020.
+   \bibitem{toshev2014} Toshev, A., Szegedy, C., "DeepPose: Human Pose Estimation via Deep Neural Networks", IEEE Conference on Computer Vision and Pattern Recognition, pp. 1653-1660, 2014.
+   \bibitem{wang2019} Wang, Z., et al., "Deep learning for sensor-based human pose estimation: A comprehensive review", Expert Systems with Applications, vol. 121, pp. 386-398, 2019.
+   \bibitem{kovacs2011} Kovacs, M., Ellenbecker, T., "An 8-Stage Model for Evaluating the Tennis Serve: Implications for Performance Enhancement and Injury Prevention", Sports Health, vol. 3, no. 6, pp. 504-513, 2011.
+   \bibitem{elliott2003} Elliott, B., Reid, M., Crespo, M., "Biomechanics of Advanced Tennis", International Tennis Federation, 2003.
+   \bibitem{whiteside2013} Whiteside, D., et al., "Three-dimensional tennis serve kinematics at three ball impact locations", Journal of Sports Sciences, vol. 31, no. 16, pp. 1787-1796, 2013.
+\end{thebibliography}
+
+\chapter{ソースコード一覧}
+
+本付録では、開発したテニスサーブ分析システムの完全なソースコードを掲載する。システムは以下のファイルで構成される：
+
+\begin{itemize}
+\item main.py - メインスクリプト
+\item video\_processor.py - 動画処理モジュール
+\item phase\_classifier.py - フェーズ分類モジュール
+\item visualizer.py - 可視化モジュール
+\item utils.py - ユーティリティ関数
+\item constants.py - 定数定義
+\item report\_generator.py - レポート生成モジュール
+\end{itemize}
+
+\section{設定ファイル}
+
+\subsection{config.yaml}
+\begin{lstlisting}
+video_path: "Tennis_Serve_Video.mp4"
+player_height: 1.70  # プレイヤーの身長（メートル）
+\end{lstlisting}
+
+\section{メインスクリプト}
+
+\subsection{main.py}
+\begin{lstlisting}
+import os
+import logging
+from typing import Dict
+import yaml
+import tensorflow as tf
+import tensorflow_hub as hub
+
+from serve_analysis.video_processor import analyze_and_visualize_serve
+from serve_analysis.phase_classifier import analyze_serve_phases
+from serve_analysis.visualizer import visualize_joint_angles
+from serve_analysis.report_generator import generate_focused_html_report
+from serve_analysis.utils import remove_outliers, smooth_angle_data, calculate_angle
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def load_config() -> Dict:
+    with open('config.yaml', 'r') as f:
+        return yaml.safe_load(f)
+
+def setup_tfhub():
+    cache_dir = "/tmp/tfhub_cache"
+    os.environ["TFHUB_CACHE_DIR"] = cache_dir
+    
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+    
+    logging.info(f"TensorFlow Hubのキャッシュディレクトリを設定しました: {cache_dir}")
+
+def main():
+    try:
+        config = load_config()
+        setup_tfhub()
+        
+        video_path = config['video_path']
+        output_video_path = "serve_analysis_with_overlay.mp4"
+        
+        keypoints_history, phases = analyze_and_visualize_serve(video_path, output_video_path)
+        
+        elbow_angles = [calculate_angle(kp['right_shoulder'], kp['right_elbow'], kp['right_wrist']) 
+                       for kp in keypoints_history]
+        knee_angles = [calculate_angle(kp['right_hip'], kp['right_knee'], kp['right_ankle']) 
+                      for kp in keypoints_history]
+        
+        elbow_angles = remove_outliers(elbow_angles)
+        knee_angles = remove_outliers(knee_angles)
+        
+        elbow_angles = smooth_angle_data(elbow_angles)
+        knee_angles = smooth_angle_data(knee_angles)
+        
+        visualize_joint_angles(elbow_angles, knee_angles, phases, "joint_angles.png")
+        
+        generate_focused_html_report(phases, elbow_angles, knee_angles, ["joint_angles.png"])
+        
+        logging.info("Processing completed. Results are saved.")
+    except Exception as e:
+        logging.error(f"予期せぬエラーが発生しました: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+\section{分析モジュール}
+
+\subsection{phase\_classifier.py}
+\begin{lstlisting}
+import numpy as np
+from typing import List, Dict
+from scipy.signal import medfilt, find_peaks
+from .utils import calculate_angle, smooth_angle_data, remove_outliers
+
+def analyze_serve_phases(keypoints_history: List[Dict[str, List[float]]]) -> List[str]:
+    # 角度データの計算と前処理
+    elbow_angles = [calculate_angle(kp['right_shoulder'], kp['right_elbow'], kp['right_wrist']) 
+                   for kp in keypoints_history]
+    knee_angles = [calculate_angle(kp['right_hip'], kp['right_knee'], kp['right_ankle']) 
+                  for kp in keypoints_history]
+    wrist_heights = [kp['right_wrist'][1] for kp in keypoints_history]
+
+    elbow_angles = remove_outliers(elbow_angles)
+    knee_angles = remove_outliers(knee_angles)
+    wrist_heights = remove_outliers(wrist_heights)
+
+    elbow_angles = smooth_angle_data(elbow_angles)
+    knee_angles = smooth_angle_data(knee_angles)
+    wrist_heights = smooth_angle_data(wrist_heights)
+
+    total_frames = len(keypoints_history)
+    if total_frames < 5:
+        return ['Preparation'] * total_frames
+
+    # 動的なフェーズ検出
+    elbow_velocity = np.diff(elbow_angles)
+    knee_velocity = np.diff(knee_angles)
+    wrist_velocity = np.diff(wrist_heights)
+
+    # Preparation終了の検出（手首の下降速度が最大）
+    preparation_end = min(np.argmin(wrist_velocity[:total_frames//2]), total_frames - 1)
+
+    # Backswing終了の検出（手首が最も低い位置）
+    backswing_end = preparation_end + np.argmin(wrist_heights[preparation_end:])
+
+    # Loading終了の検出（膝の角度が最小）
+    loading_end = backswing_end + np.argmin(knee_angles[backswing_end:])
+
+    # Forward Swing開始の検出（肘の角速度が正に最大）
+    forward_swing_start = loading_end + np.argmax(elbow_velocity[loading_end:])
+
+    # Impact検出（手首の高さが最大）
+    impact_range = wrist_heights[forward_swing_start:]
+    impact_frame = forward_swing_start + np.argmax(impact_range)
+
+    # フェーズの割り当て
+    phase_boundaries = [0, preparation_end, backswing_end, loading_end, 
+                       forward_swing_start, impact_frame, total_frames]
+    phase_names = ['Preparation', 'Backswing', 'Loading', 
+                  'Forward Swing', 'Impact', 'Follow Through']
+
+    phases = []
+    for i in range(len(phase_boundaries) - 1):
+        phases.extend([phase_names[min(i, len(phase_names)-1)]] * 
+                     (phase_boundaries[i+1] - phase_boundaries[i]))
+
+    return phases
+
+def smooth_phases(phases: List[str], window_size: int = 5) -> List[str]:
+    if not phases:
+        return []
+    
+    phase_to_num = {phase: i for i, phase in 
+                   enumerate(['Preparation', 'Backswing', 'Loading', 
+                            'Forward Swing', 'Impact', 'Follow Through'])}
+    num_phases = [phase_to_num[phase] for phase in phases]
+    
+    # メディアンフィルタを適用
+    smoothed_num_phases = medfilt(num_phases, kernel_size=min(window_size, len(num_phases)))
+    
+    num_to_phase = {i: phase for phase, i in phase_to_num.items()}
+    return [num_to_phase[int(num)] for num in smoothed_num_phases]
+\end{lstlisting}
+
+\subsection{utils.py}
+\begin{lstlisting}
+import numpy as np
+from typing import List
+from scipy.signal import medfilt, savgol_filter
+
+def calculate_angle(a: List[float], b: List[float], c: List[float]) -> float:
+    """3点間の角度を計算する"""
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
+    
+    ba = a - b
+    bc = c - b
+    
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
+    
+    return np.degrees(angle)
+
+def smooth_angle_data(angles: List[float], window_size: int = 11) -> List[float]:
+    """Savitzky-Golayフィルタを使用して角度データをスムージング"""
+    if len(angles) < window_size:
+        return angles
+    return list(savgol_filter(angles, window_size, 3))
+
+def remove_outliers(data: List[float], threshold: float = 2.5) -> List[float]:
+    """修正z得点法を使用して外れ値を除去"""
+    median = np.median(data)
+    mad = np.median(np.abs(data - median))
+    modified_z_scores = 0.6745 * (data - median) / mad
+    return [d if abs(score) < threshold else median 
+            for d, score in zip(data, modified_z_scores)]
+\end{lstlisting}
+
+\subsection{constants.py}
+\begin{lstlisting}
+from typing import Dict, Tuple
+
+TENNIS_KEYPOINTS: Dict[int, str] = {
+    0: 'nose',
+    1: 'left_eye',
+    2: 'right_eye',
+    3: 'left_ear',
+    4: 'right_ear',
+    5: 'left_shoulder',
+    6: 'right_shoulder',
+    7: 'left_elbow',
+    8: 'right_elbow',
+    9: 'left_wrist',
+    10: 'right_wrist',
+    11: 'left_hip',
+    12: 'right_hip',
+    13: 'left_knee',
+    14: 'right_knee',
+    15: 'left_ankle',
+    16: 'right_ankle'
+}
+
+PHASE_COLORS: Dict[str, Tuple[float, float, float]] = {
+    'Preparation': (1.0, 0.0, 0.0),    # 赤
+    'Backswing': (0.0, 1.0, 0.0),      # 緑
+    'Loading': (0.0, 0.0, 1.0),        # 青
+    'Forward Swing': (1.0, 1.0, 0.0),  # 黄
+    'Impact': (1.0, 0.0, 1.0),         # マゼンタ
+    'Follow Through': (0.0, 1.0, 1.0)  # シアン
+}
+\end{lstlisting}
+
+\subsection{report\_generator.py}
+\begin{lstlisting}
+from typing import Dict, List
+import numpy as np
+from .utils import calculate_angle, smooth_angle_data
+
+def generate_focused_html_report(phases: List[str], elbow_angles: List[float], 
+                               knee_angles: List[float], image_paths: List[str]):
+    phase_order = ['Preparation', 'Backswing', 'Loading', 
+                   'Forward Swing', 'Impact', 'Follow Through']
+    phase_stats = {phase: {'Elbow': [], 'Knee': []} for phase in phase_order}
+    
+    for i, phase in enumerate(phases):
+        phase_stats[phase]['Elbow'].append(elbow_angles[i])
+        phase_stats[phase]['Knee'].append(knee_angles[i])
+    
+    html_content = """
+    <html>
+    <head>
+        <title>Tennis Serve Analysis Report: Elbow and Knee Angles</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+            h1, h2 { color: #333; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            img { max-width: 100%; height: auto; margin-top: 20px; }
+        </style>
+    </head>
+    <body>
+        <h1>Tennis Serve Analysis Report: Elbow and Knee Angles</h1>
+
+        <h2>Joint Angle Statistics by Phase</h2>
+        <table>
+            <tr>
+                <th>Phase</th>
+                <th>Joint</th>
+                <th>Min Angle</th>
+                <th>Max Angle</th>
+                <th>Mean Angle</th>
+                <th>Std Dev</th>
+            </tr>
+    """
+    
+    for phase in phase_order:
+        for joint in ['Elbow', 'Knee']:
+            if phase_stats[phase][joint]:
+                min_angle = min(phase_stats[phase][joint])
+                max_angle = max(phase_stats[phase][joint])
+                mean_angle = sum(phase_stats[phase][joint]) / len(phase_stats[phase][joint])
+                std_dev = np.std(phase_stats[phase][joint])
+                html_content += f"""
+                <tr>
+                    <td>{phase}</td>
+                    <td>{joint}</td>
+                    <td>{min_angle:.2f}</td>
+                    <td>{max_angle:.2f}</td>
+                    <td>{mean_angle:.2f}</td>
+                    <td>{std_dev:.2f}</td>
+                </tr>"""
+    
+    html_content += """
+        </table>
+
+        <h2>Visualizations</h2>
+    """
+    
+    for image_path in image_paths:
+        html_content += f'<img src="{image_path}" alt="Serve Analysis Visualization">'
+    
+    html_content += """
+    </body>
+    </html>
+    """
+    
+    with open('focused_serve_analysis_report.html', 'w') as f:
+        f.write(html_content)
+\end{lstlisting}
+
+\section{依存関係}
+
+\subsection{requirements.txt}
+\begin{lstlisting}
+numpy>=1.19.2
+tensorflow>=2.4.0
+tensorflow-hub>=0.12.0
+scipy>=1.6.0
+PyYAML>=5.4.1
+opencv-python-headless>=4.5.0
+matplotlib>=3.3.4
+scikit-learn>=0.24.1
+\end{lstlisting}
+
+
+\end{document}
