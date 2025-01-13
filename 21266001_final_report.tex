@@ -1,28 +1,27 @@
 \documentclass[oneside]{suribt}[11pt]
 \usepackage[dvipdfmx]{graphicx}
 \usepackage{url}
-\usepackage{times, amsmath, amssymb,ascmac,amssymb}
+\usepackage{times}
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{ascmac}
 \usepackage{listings}
-\usepackage{xcolor}
+\usepackage[dvipdfmx]{xcolor}
 \usepackage{float}
-\usepackage{listings}
-\usepackage{xcolor}
+\usepackage{bm}
 
+% lstlistingsの設定
 \lstset{
    basicstyle=\ttfamily\small,
    breaklines=true,
    numbers=left,
    frame=single,
    language=Python,
-   escapeinside={\%*}{*)},  % 日本語コメント用
+   escapeinside={\%*}{*)},
    extendedchars=true,
    inputencoding=utf8,
    columns=flexible,
-   keepspaces=true
-}
-
-\lstset{
+   keepspaces=true,
    commentstyle=\color{gray},
    keywordstyle=\color{blue},
    stringstyle=\color{red},
@@ -33,28 +32,40 @@
 \newcommand{\argmin}{\operatornamewithlimits{argmin}}
 \def\fat#1{\mbox{\boldmath $#1$}}
 
-\renewcommand{\thesection}{\arabic{chapter}.\arabic{section}}
-\renewcommand{\thesubsection}{\arabic{chapter}.\arabic{section}.\arabic{subsection}}
-
-\makeatletter
-\if@undergraduate
-  \if@english
-    \gdef\@belongsto{Department of Computer and Information Sciences\\Faculty of Engineering\\Tokyo University of Agriculture and Technology}%
-  \else
-    \gdef\@belongsto{東京農工大学 工学部\\知能情報システム工学科}%
-  \fi
-\fi
-\makeatother
-
-\title{MoveNetを用いたテニスサーブの\\フェーズ認識および多角的性能評価法の研究}
-\author{相場　翔貴}
-\eauthor{Shoki Aiba}
-\studentid{21266001}
-\supervisor{堀田　政二　准教授}
-\handin{2024}{12}
-
 \begin{document}
-\maketitle
+
+\begin{titlepage}
+\begin{center}
+\leavevmode \\ \leavevmode \\
+{\huge MoveNetを用いたテニスサーブの\\フェーズ認識および性能評価法}
+\\ \leavevmode \\
+{\Large Phase Recognition and Performance Evaluation Method\\of Tennis Serves Using MoveNet}
+\\ \leavevmode \\ \leavevmode \\
+{\huge 相場　翔貴}\\
+\vspace{8pt}
+{\large Shoki AIBA}
+\\ \leavevmode \\ \leavevmode \\
+{\large 2021年度入学 21266001}
+\\ \leavevmode \\
+\includegraphics[width=4cm,angle=90]{image/profile.eps}
+\\ \leavevmode \\ \leavevmode \\
+{\huge 指導教員 堀田政二 准教授}
+\leavevmode \\ \leavevmode \\
+{\large 東京農工大学大学 工学部 知能情報システム工学科}\\
+\vspace{4pt}
+{\large 2024年度卒業論文}\\
+\vspace{4pt}
+{\large 2025年2月}
+\end{center}
+\end{titlepage}
+
+\newpage
+\thispagestyle{empty}
+\null\vfill
+\noindent
+Copyright © 2024, Shoki Aiba.
+\newpage
+
 \frontmatter
 \begin{abstract}
 
