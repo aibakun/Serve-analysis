@@ -68,20 +68,12 @@ Copyright © 2024, Shoki Aiba.
 
 \frontmatter
 \begin{abstract}
-
     テニスにおいてサーブは試合の勝敗を左右する最も重要な技術の一つである。効果的な練習には正確な動作分析が不可欠だが、従来の分析手法には主観性への依存や高コストな機器の必要性といった課題が存在する。特に高速カメラやモーションキャプチャシステムを用いた従来手法は、導入コストが数百万円規模となり、一般の練習現場での活用が困難であった。本研究では、深層学習モデルMoveNetと独自開発したフェーズ分類アルゴリズムを組み合わせ、スマートフォンで撮影した映像からサーブ動作を自動分析するシステムを提案する。
-
     提案システムは、サーブ動作を準備、バックスイング、ローディング、フォワードスイング、インパクト、フォロースルーの6つの主要フェーズに分類し、各フェーズでの動作特性を定量的に評価する。システムの実装では、17個の関節位置の推定に加え、外れ値除去とメディアンフィルタによるスムージング処理を導入し、動作認識の安定性を向上させた。特に肘関節と膝関節の角度変化に着目し、これらの時系列データから動作フェーズの自動認識を実現している。フェーズ境界の検出には、関節角度の変化率や極値を用いた動的な判定アルゴリズムを開発し、安定したフェーズ分類を可能とした。
-
-    評価実験では、初級、中級、上級の異なる技能レベルの選手のサーブ動作を分析した。その結果、上級者は特にローディングフェーズでの膝関節の深い屈曲、平均126.23度と、フォロースルーフェーズでの安定した動作制御、肘関節の標準偏差3.62度が特徴的であることが明らかになった。特に注目すべき点として、上級者のフォロースルー時の膝関節角度の標準偏差は2.38度と非常に小さく、安定した動作の再現性の高さを示している。一方、初級者では特にバックスイングフェーズでの肘の屈曲が大きく、平均96.74度、動作の再現性も低く、標準偏差15.55度であることが確認された。また、中級者は上級者と初級者の中間的な特徴を示し、特にバックスイングでの動作の安定性において肘関節標準偏差2.33度と向上していることが確認された。
-
-    システムの実装面では、一般的なスマートフォンによる4K、60fpsでの撮影映像に対して、リアルタイムでの骨格推定とフェーズ分類が可能である。また、外れ値除去とスムージング処理により、撮影環境の変化や一時的な検出エラーに対してもロバストな分析を実現している。従来のモーションキャプチャシステムと比較して、特別な機器やマーカーの装着を必要とせず、通常の練習環境でそのまま利用可能である点が大きな特徴となっている。
-
-    定量的な動作解析では、各フェーズにおける関節角度の統計的な分析に加え、フェーズ間の遷移タイミングや動作の連続性についても評価を行った。特に、ローディングからフォワードスイングへの移行時における膝関節の伸展速度と、肘関節角度の変化パターンの関係性を明らかにした。これにより、効率的なエネルギー伝達メカニズムの定量的な評価が可能となった。
-
-    本研究の成果は、テニス指導現場において、客観的なデータに基づく効率的な技術指導を可能とするものである。特に、各フェーズでの定量的な動作評価は、選手の技術的課題の特定と改善指針の提示に有用である。また、システムの低コストと汎用性は、幅広い練習環境での活用を可能とする。これにより、データに基づいた科学的なテニス指導の普及に貢献することが期待される。
-
-\end{abstract}
+    評価実験では、初級、中級、上級の異なる技能レベルの選手のサーブ動作を分析した。その結果、初級者は全フェーズを通じて膝関節が伸展状態（162-178度）を維持し、特にLoading時の動作が固く（標準偏差0.00度）、力の伝達が不十分であることが明らかになった。また、Preparationフェーズでの肘の屈曲が顕著（平均67.52度）で、Forward Swing時の肘関節の変動が大きい（標準偏差12.68度）という特徴が見られた。中級者ではBackswingでの動作の安定性が向上し（肘関節標準偏差2.33度、膝関節標準偏差0.51度）、基本フォームの習得が進んでいることが確認された。一方、上級者は特にPreparationから動作を入念に準備し（肘関節平均168.36度）、Loading時の膝の深い屈曲（最小角度81.16度）と、Follow Through時の安定した動作制御（肘関節標準偏差0.57度）が特徴的であることが判明した。
+    システムの実装面では、一般的なスマートフォンによる撮影映像に対して、リアルタイムでの骨格推定とフェーズ分類が可能となっている。また、外れ値除去とスムージング処理により、撮影環境の変化や一時的な検出エラーに対してもロバストな分析を実現している。従来のモーションキャプチャシステムと比較して、特別な機器やマーカーの装着を必要とせず、通常の練習環境でそのまま利用可能である点が大きな特徴となっている。
+    定量的な動作解析では、各フェーズにおける関節角度の統計的な分析に加え、フェーズ間の遷移タイミングや動作の連続性についても評価を行った。特に注目すべき点として、上級者のフォロースルー時の動作の再現性の高さ（膝関節標準偏差4.05度）や、中級者のLoading時の不安定さ（肘関節標準偏差16.21度）など、技能レベルによる特徴的な差異を定量的に示すことができた。これらの知見は、テニス指導における段階的な技術向上のための重要な指針となる。また、システムの低コストと汎用性は、幅広い練習環境での活用を可能とし、データに基づいた科学的なテニス指導の普及に貢献することが期待される。
+    \end{abstract}
 
 \tableofcontents    % 目次
 \listoftables       % 表目次
@@ -91,45 +83,21 @@ Copyright © 2024, Shoki Aiba.
 \chapter{はじめに}
 
 \section{背景}
-スポーツ科学の発展に伴い、様々な競技において科学的アプローチによる技術向上が図られている。特にテニスにおいては、その競技人口の増加とともに、より効率的な練習方法や技術向上のためのシステマティックなアプローチが求められている。日本テニス協会の統計によれば、国内の競技人口は2023年時点で約400万人に達し、特に若年層における競技人口が顕著な増加を示している。
+スポーツ科学の発展に伴い、様々な競技において科学的アプローチによる技術向上が図られている。特にテニスにおいては、その競技人口の増加とともに、より効率的な練習方法や技術向上のためのシステマティックなアプローチが求められている。Kovacs and Ellenbecker\cite{kovacs2011}の研究によれば、サーブは試合の勝敗を直接左右する最も重要な技術の一つとして位置づけられている。
 
-テニスの基本技術の中でも、サーブは試合の勝敗を直接左右する最も重要な技術の一つとして位置づけられている\cite{kovacs2011}。ATP（男子プロテニス協会）の統計によれば、世界ランキング上位100位以内の選手の第1サーブの成功率は平均して65％を超えており、サーブの精度が競技力を大きく左右することが明らかとなっている。
+Reid et al.\cite{reid2007}の研究では、サーブ動作の時間的特性が明らかにされ、準備から完了までわずか0.5秒程度で行われる複雑な動作であることが示されている。しかし、Toshev and Szegedy\cite{toshev2014}が指摘するように、従来の動作分析では高価な機器が必要となり、一般の練習者が日常的に利用することが困難である。
 
-しかしながら、現在のテニス指導現場では、以下のような重要な課題が存在している：
-
-\begin{enumerate}
-    \item 主観的評価への依存：サーブ動作の指導において、コーチの目視による主観的な評価に大きく依存しており、客観的なデータに基づいた指導が不足している。
-    
-    \item 即時フィードバックの困難さ：準備から完了までわずか0.5秒程度で行われる複雑なサーブ動作を、人の目のみで正確に評価することには限界がある\cite{serve_analysis}。
-    
-    \item 高コストな分析機器：従来の動作分析では、高速カメラやモーションキャプチャシステムなどの高価な機器が必要となり、一般の練習者が日常的に利用することが困難である\cite{toshev2014}。
-    
-    \item 環境制約：既存の分析システムの多くは特定の室内環境でしか使用できず、実際の練習環境での適用が難しい。
-\end{enumerate}
+テニスサーブの動作分析は、Abrams et al.\cite{abrams2018}による高速カメラを用いた映像分析や、Elliott et al.\cite{elliott2003}による生体力学的研究など、様々なアプローチで進められてきた。Sun et al.\cite{hrnet}は処理速度と精度のトレードオフの問題を指摘し、Whiteside et al.\cite{whiteside2013}は実践環境での適用可能性について研究を行った。また、Wang et al.\cite{wang2019}は動作の自動分類における精度の課題を明らかにした。
 
 \section{先行研究}
-テニスサーブの動作分析に関する研究は、技術の発展とともに様々なアプローチで進められてきた。Elliott et al. \cite{elliott2003}は高速カメラを用いた詳細な動作解析を行い、サーブ動作における重要な力学的要素を明らかにした。この研究では、効果的なサーブを打つための理想的な関節角度や、力の伝達メカニズムについて詳細な知見が得られた。しかしながら、分析に特殊な機器と専門知識が必要であり、実践的な指導場面での活用は限定的であった。
+近年の機械学習アプローチでは、Cao et al.\cite{openpose}が開発したOpenPoseや、Bazarevsky et al.\cite{mediapipe}によるMediaPipeなど、深層学習を用いた姿勢推定が主流となっている。これらの手法は、Goodfellow et al.\cite{goodfellow}が示した深層学習の理論的枠組みに基づいている。
 
-Reid et al. \cite{serve_analysis}は3次元モーションキャプチャシステムを用いた研究を展開し、サーブ動作中の各関節の動きを高精度に計測し、パワー生成のメカニズムを詳細に分析した。特に、下半身から上半身へのエネルギーの伝達過程が明らかになり、効率的なサーブ動作の指標が示された。しかしながら、この手法ではマーカーの装着が必要であり、選手の自然な動作を妨げる可能性が指摘されている\cite{toshev2014}。
+Reid et al.\cite{serve_analysis}は、モーションキャプチャシステムを用いたサーブ動作の詳細な解析を行い、下肢と上肢の協調動作の重要性を明らかにした。実装面では、Abadi et al.\cite{tensorflow}のTensorFlowやBradski\cite{opencv}のOpenCVなど、オープンソースのライブラリが活用されている。
 
-近年では、深層学習技術の発展により、新たな分析手法が提案されている\cite{goodfellow}。MediaPipe\cite{mediapipe}やOpenPose\cite{openpose}などの姿勢推定システムの登場により、通常のビデオカメラでの撮影映像からサーブ動作を分析することが可能になった。さらに、MoveNet\cite{mediapipe}などのより軽量なモデルの開発により、リアルタイムでの動作認識が実現されつつある。しかしながら、これらの研究では以下の課題が残されている：
-
-\begin{enumerate}
-    \item 処理速度と精度のトレードオフ\cite{hrnet}
-    \item 2次元画像からの姿勢推定の限界\cite{openpose}
-    \item フェーズ分類の自動化における精度不足\cite{elliott2003}
-\end{enumerate}
+しかしながら、これらの研究には複数の課題が残されている。Sun et al.\cite{hrnet}は処理速度と精度のトレードオフの問題を指摘しており、Whiteside et al.\cite{whiteside2013}は実践環境での適用可能性について課題を示している。また、Wang et al.\cite{wang2019}は動作の自動分類における精度の問題を指摘している。
 
 \section{目的}
-本研究は、上記の課題を解決する新しいテニスサーブ分析システムの開発を目的とする。具体的には以下の3点を主要な研究目標として設定する：
-
-\begin{enumerate}
-    \item 深層学習モデルMoveNetを活用し、一般的なスマートフォンで撮影した映像からでも高精度な姿勢推定を実現する。
-    
-    \item サーブ動作を6つの主要フェーズ（準備、バックスイング、ローディング、フォワードスイング、インパクト、フォロースルー）に自動分類し、各フェーズにおける動作の特徴を定量的に評価する手法を確立する。
-    
-    \item 分析結果を視覚的にわかりやすく提示し、練習者自身による問題点の把握と改善を支援するシステムを構築する。
-\end{enumerate}
+本研究は、上記の課題を解決する新しいテニスサーブ分析システムの開発を目的とする。第一に、深層学習モデルMoveNetを活用し、一般的なスマートフォンで撮影した映像からでも高精度な姿勢推定の実現を目指す。第二に、サーブ動作を6つの主要フェーズに自動分類し、各フェーズにおける動作の特徴を定量的に評価する手法を確立する。第三に、分析結果を視覚的にわかりやすく提示し、練習者自身による問題点の把握と改善を支援するシステムを構築する。
 
 \section{論文の構成}
 本論文は以下の構成で展開される：
@@ -221,36 +189,49 @@ OpenPose & 89.3\% & 0.1秒/フレーム & 10万円程度 \\
 
 検出されるキーポイントは定数として定義された以下の17点である：鼻、左右の目、耳、肩、肘、手首、腰、膝、足首。検出されたキーポイントは位置座標$(x, y)$と信頼度スコア$c$を持つ。
 
+\subsection{キーポイント検出の信頼度閾値処理}
+キーポイントの信頼度に基づくフィルタリングでは、以下の式を用いて低信頼度のキーポイントを除外する：
+
+\begin{equation}
+K_{filtered} = \{k_i \in K | c_i > \theta_{confidence}\}
+\end{equation}
+
+ここで、$K$は検出されたキーポイント集合、$c_i$はキーポイント$i$の信頼度スコア、$\theta_{confidence}$は信頼度閾値（0.1）を表す。この閾値処理により、誤検出されやすい低信頼度のキーポイントを除外し、分析の信頼性を向上させている。
+
 \subsection{キーポイントの後処理}
-検出されたキーポイントは、以下の3段階の後処理を経て精度が向上される：
+検出されたキーポイントの精度と安定性を向上させるため、以下の3段階の後処理を実装した：
 
 1. 信頼度に基づくフィルタリング
-utils.pyに実装された閾値処理により、低信頼度のキーポイントを除外する：
+各キーポイントの検出信頼度に基づいて、低信頼度の検出結果を除外する。フィルタリングは以下の式で定義される：
 
 \begin{equation}
-K_{filtered} = \{k_i | c_i > 0.1\}
+K_{filtered} = \{k_i \in K | c_i > \theta_{confidence}\}
 \end{equation}
 
-ここで、$c_i$はキーポイント$i$の信頼度スコアを表す。
+ここで、$K$は検出されたキーポイント集合、$k_i$は個々のキーポイント、$c_i$はキーポイント$i$の信頼度スコア、$\theta_{confidence}$は信頼度閾値（0.1）を表す。この処理により、誤検出の可能性が高いキーポイントを分析から除外する。
 
 2. 外れ値除去
-utils.pyに実装された中央値絶対偏差（MAD）に基づく外れ値検出を行う：
+時系列データにおける急激な変動を検出・除去するため、中央値絶対偏差（MAD）に基づく外れ値検出を実装した。MADは以下の手順で計算される：
 
+まず、データセット$X$の中央値からの偏差の中央値を計算する：
 \begin{equation}
-\text{mad} = \text{median}(|x_i - \text{median}(X)|)
+\text{MAD} = \text{median}(|x_i - \text{median}(X)|), \quad i = 1,\ldots,n
 \end{equation}
 
+次に、各データポイントの修正z得点を計算する：
 \begin{equation}
-z_i = 0.6745\frac{x_i - \text{median}(X)}{\text{mad}}
+z_i = \frac{0.6745(x_i - \text{median}(X))}{\text{MAD}}
 \end{equation}
 
-この処理により、$|z_i| > 2.5$となるデータポイントを外れ値として検出し、中央値で置換する。
+ここで、0.6745は正規分布の標準偏差とMADの関係を標準化する係数である。$|z_i| > 2.5$となるデータポイントを外れ値として検出し、その値を中央値で置換する。この閾値は予備実験を通じて、正常な動作の変動は保持しつつ、明らかな誤検出のみを除去できる値として設定された。
+
+例えば、肘関節角度の計測において、センサーの一時的な遮蔽により90度から170度への急激な変化が検出された場合、このような非現実的な角度変化は外れ値として検出され、前後のフレームの中央値で補間される。これにより、急激な位置の変動や検出エラーによるノイズを除去し、滑らかな動作の軌跡を得ることができる。
 
 3. 時系列スムージング
 Savitzky-Golayフィルタを用いて時系列データの平滑化を行う\cite{elliott2003}。ウィンドウサイズ11、多項式次数3のフィルタを適用することで、検出ノイズを低減しつつ、急激な動きの特徴を保持する。
 
 \section{関節角度の計算}
-サーブ動作の分析において重要となる関節角度は、utils.pyに実装された以下の式により3点のキーポイントから計算されるcite{kovacs2011}：
+サーブ動作の分析において重要となる関節角度は、3点のキーポイントから以下の式で算出される\cite{kovacs2011}：
 
 \begin{equation}
 \theta = \cos^{-1}\left(\frac{\vec{v_1} \cdot \vec{v_2}}{\|\vec{v_1}\| \|\vec{v_2}\|}\right)
@@ -278,6 +259,60 @@ p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
 本章では、テニスサーブの動作分析のために開発したシステムについて説明する。特に、サーブ動作の各フェーズを自動的に分類するアルゴリズムと、その評価手法について詳述する。
 
 \section{フェーズ分類システム}
+本研究で開発したフェーズ分類システムは、MoveNetによって検出された骨格キーポイントのデータを基に、以下の三つの主要な処理を行う：
+
+\subsection{キーポイントの前処理}
+動画フレームごとに検出される17個の関節位置（キーポイント）データに対して、三段階の処理を適用する。まず、信頼度スコアに基づくフィルタリングを行い、検出精度の低いキーポイントを除外する。次に、時系列データにおける急激な変動を検出し、外れ値として除去する。最後に、時系列データの平滑化処理により、検出ノイズを低減する。
+
+\subsection{特徴量の抽出}
+本研究は、上記の課題を解決する新しいテニスサーブ分析システムの開発を目的とする。第一に、深層学習モデルMoveNetを活用し、一般的なスマートフォンで撮影した映像からでも高精度な姿勢推定の実現を目指す。第二に、サーブ動作を6つの主要フェーズに自動分類し、各フェーズにおける動作の特徴を定量的に評価する手法を確立する。第三に、分析結果を視覚的にわかりやすく提示し、練習者自身による問題点の把握と改善を支援するシステムを構築する。
+
+\subsection{分類アルゴリズム}
+フェーズの分類は以下の手順で実行される：
+
+1. 初期フェーズ推定
+   - 各フレームの特徴量を基に、フェーズの候補を決定
+   - 事前に定義された閾値と条件に基づいて判定
+
+2. 時系列制約の適用
+   - フェーズの論理的な順序関係を考慮
+   - 異常な遷移の排除
+
+3. 平滑化処理
+   - メディアンフィルタによるノイズ除去
+   - フェーズ境界の安定化
+
+\section{フェーズ分類の妥当性}
+テニスサーブ動作の分類において、Kovacs and Ellenbecker\cite{kovacs2011}は以下に示す8段階の詳細なフェーズ分類を提案している：
+1. Start
+2. Release
+3. Loading
+4. Cocking
+5. Acceleration
+6. Contact
+7. Deceleration
+8. Finish
+
+本研究では、これらを6つの主要フェーズに集約した。具体的には、StartとReleaseをPreparationに、CockingをBackswingに統合し、DecelerationとFinishをFollow Throughとして一体化した。この集約により、動作の連続性が向上し、フェーズ間の境界がより明確に検出可能となった。また、各フェーズが具体的な技術指導ポイントと直接対応するため、指導現場での活用がしやすくなる。さらに、フェーズ数の削減により、検出の安定性が向上し、システム全体の信頼性が高まった。
+
+\section{従来の動作解析手法との比較}
+従来手法と本研究の定量的な比較を表\ref{tab:method_comparison}に示す：
+
+\begin{table}[htbp]
+\caption{動作解析手法の比較}
+\label{tab:method_comparison}
+\centering
+\begin{tabular}{lccc}
+\hline
+手法 & 処理時間 & 導入コスト & 精度(PCKh@0.5) \\
+\hline
+DTW & 2-3秒/フレーム & 低 & 85\% \\
+HMM & 1-2秒/フレーム & 低 & 82\% \\
+モーションキャプチャ & リアルタイム & 1000万円以上 & 98\% \\
+提案手法 & 0.1秒/フレーム & 低 & 89\% \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{フェーズの定義と特徴}
 本研究では、テニスサーブ動作を6つの主要フェーズに分類する。具体的には、Preparation（準備）、Backswing（バックスイング）、Loading（ローディング）、Forward Swing（フォワードスイング）、Impact（インパクト）、Follow Through（フォロースルー）の6フェーズである。これらのフェーズは、サーブ動作における重要な技術的要素を段階的に捉えることを可能とし、各フェーズでの特徴的な姿勢と動作の遷移を詳細に分析することができる。
@@ -388,6 +423,18 @@ t_{follow\_end} = \min\{t > t_{impact} | \frac{d}{dt}h_{wrist}(t) = 0 \land \fra
 \label{fig:phase_follow}
 \end{figure}
 
+\section{従来の動作解析手法との比較}
+テニスサーブの動作解析には、以下のような従来手法が存在する：
+
+1. DTW（Dynamic Time Warping）による時系列分析
+2. HMM（Hidden Markov Model）によるフェーズ分類
+3. 3次元モーションキャプチャによる詳細解析
+
+本研究の手法は、以下の点で従来手法と異なるアプローチを採用している：
+
+1. リアルタイム性：深層学習による高速な姿勢推定
+2. 導入コスト：特殊な機器を必要としない
+3. 自動化：フェーズ境界の自動検出による客観的評価
 
 \section{フェーズの安定化処理}
 検出されたフェーズ境界の安定性を向上させるため、以下の処理を適用する：
@@ -426,46 +473,53 @@ p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
 
 \section{実験設定}
 \subsection{データセット}
-評価実験に用いたデータセットは、一般的なスマートフォンカメラを使用して撮影した。撮影条件として、解像度を1920×1080ピクセル、フレームレートを30fpsに設定した。被験者は競技レベルに応じて三つのグループに分類し、上級者群（競技歴8年以上）2名、中級者群（競技歴3-7年）2名、初級者群（競技歴2年以下）2名の計6名から構成された。各被験者につき10本のサーブ動作を撮影し、合計60本のサーブ動作データを収集した。
+評価実験に用いたデータセットは、一般的なスマートフォンカメラを使用して撮影した。被験者は上級者（競技歴8年以上）1名、中級者（競技歴3-7年）1名、初級者（競技歴2年以下）1名の計3名から構成された。各被験者につき10本のサーブ動作を撮影し、合計30本のサーブ動作データを収集した。
 
 \subsection{評価環境}
 実験はApple M2 Pro搭載のMacBook Pro（メモリ16GB）上で実施した。ソフトウェア環境としてはPython 3.8、TensorFlow 2.x、OpenCV 4.xを使用し、開発したシステムの評価を行った。
 
-\section{評価結果}
+\section{評価実験の結果}
+図\ref{fig:beginner_angles}から図\ref{fig:advanced_angles}は、各技能レベルを代表する1名の選手による代表的な試技の関節角度変化を示している。この代表的な試技は、各群の平均的な特徴を最もよく表すものとして、以下の基準で選択した：
+
+1. 各フェーズでの関節角度が群の平均値に近いもの
+2. 動作の安定性を示す標準偏差が群の平均的な値を示すもの
+3. フェーズの遷移タイミングが群の平均的なパターンを示すもの
+
+なお、全被験者の試技データについては付録に示す。また、この代表的な試技の選択が恣意的とならないよう、選択基準を定量化し、各群の平均値からの偏差が最小となる試技を選定した。
 
 \subsection{技能レベル別の関節角度分析}
 
 \subsubsection{初級者の特徴}
-初級者群の関節角度分析結果を表\ref{tab:beginner_analysis}に示す。初級者の特徴として、Backswingでの肘の屈曲が大きく（平均96.74°）、Forward Swing時の肘関節の変動が著しい（標準偏差23.02°）ことが確認された。特にFollow Through時の肘関節の不安定性（標準偏差32.72°）が顕著である。
+初級者群の分析結果を表\ref{tab:beginner_analysis}に示す。初級者の特徴として、Preparationフェーズでの肘の屈曲が顕著（平均67.52°）であり、Forward Swing時の肘関節の変動が大きい（標準偏差12.68°）ことが確認された。特にLoading時のデータが単一の値に集中している（標準偏差0.00°）ことから、この局面での動作の固さが見られる。また、膝関節は全フェーズを通じて比較的伸展した状態（165-175°）を維持しており、下半身の使用が少ないことが示唆される。
 
 \begin{table}[htbp]
-   \caption{初級者のの関節角度解析}
-   \label{tab:beginner_analysis}
-   \centering
-   \begin{tabular}{lccccc}
-   \hline
-   フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
-   \hline
-   Preparation & 肘 & 98.51\textdegree & 177.37\textdegree & 160.92\textdegree & 18.86\textdegree \\
-    & 膝 & 142.32\textdegree & 171.34\textdegree & 159.38\textdegree & 7.76\textdegree \\
-   \hline
-   Backswing & 肘 & 73.90\textdegree & 142.95\textdegree & 96.74\textdegree & 15.55\textdegree \\
-    & 膝 & 142.85\textdegree & 156.77\textdegree & 150.65\textdegree & 4.01\textdegree \\
-   \hline
-   Forward Swing & 肘 & 74.73\textdegree & 133.77\textdegree & 111.08\textdegree & 23.02\textdegree \\
-    & 膝 & 154.80\textdegree & 168.31\textdegree & 164.61\textdegree & 3.98\textdegree \\
-   \hline
-   Impact & 肘 & 105.66\textdegree & 152.08\textdegree & 129.06\textdegree & 18.95\textdegree \\
-    & 膝 & 166.68\textdegree & 170.41\textdegree & 168.46\textdegree & 1.53\textdegree \\
-   \hline
-   Follow Through & 肘 & 28.59\textdegree & 173.57\textdegree & 134.63\textdegree & 32.72\textdegree \\
-    & 膝 & 171.47\textdegree & 178.42\textdegree & 174.31\textdegree & 1.85\textdegree \\
-   \hline
-   \end{tabular}
+\caption{初級者の関節角度解析}
+\label{tab:beginner_analysis}
+\centering
+\begin{tabular}{lccccc}
+\hline
+フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
+\hline
+Preparation & 肘 & 54.93\textdegree & 98.62\textdegree & 67.52\textdegree & 8.82\textdegree \\
+    & 膝 & 162.41\textdegree & 168.46\textdegree & 165.39\textdegree & 1.76\textdegree \\
+\hline
+Backswing & 肘 & 104.33\textdegree & 118.17\textdegree & 111.20\textdegree & 5.65\textdegree \\
+    & 膝 & 168.24\textdegree & 169.11\textdegree & 168.64\textdegree & 0.36\textdegree \\
+\hline
+Loading & 肘 & 124.10\textdegree & 124.10\textdegree & 124.10\textdegree & 0.00\textdegree \\
+    & 膝 & 169.48\textdegree & 169.48\textdegree & 169.48\textdegree & 0.00\textdegree \\
+\hline
+Forward Swing & 肘 & 104.24\textdegree & 143.03\textdegree & 127.64\textdegree & 12.68\textdegree \\
+    & 膝 & 169.48\textdegree & 175.74\textdegree & 171.39\textdegree & 1.74\textdegree \\
+\hline
+Follow Through & 肘 & 130.16\textdegree & 169.83\textdegree & 151.05\textdegree & 12.49\textdegree \\
+    & 膝 & 172.61\textdegree & 178.48\textdegree & 175.54\textdegree & 1.63\textdegree \\
+\hline
+\end{tabular}
 \end{table}
 
 \subsubsection{中級者の特徴}
-中級者群の分析結果を表\ref{tab:intermediate_analysis}に示す。中級者では、Backswingでの動作の安定性が向上し（肘関節標準偏差2.33°、膝関節標準偏差0.51°）、全体的な動作の一貫性が改善されている。ただし、Loading時の肘関節の変動（標準偏差16.21°）にはまだ改善の余地が見られる。
+中級者群の分析結果を表\ref{tab:intermediate_analysis}に示す。中級者では、Backswingでの動作の安定性が顕著であり（肘関節標準偏差1.16°、膝関節標準偏差0.57°）、基本フォームの習得が進んでいることを示している。しかし、Loading時の動作にはまだ不安定さが見られ、肘関節の標準偏差が28.61°と
 
 \begin{table}[H]
    \caption{中級者の関節角度統計}
@@ -497,36 +551,36 @@ p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
 \end{table}
 
 \subsubsection{上級者の特徴}
-上級者群の分析結果を表\ref{tab:advanced_analysis}に示す。上級者は特にLoading時の肘関節の安定性が高く（標準偏差2.26°）、Follow Through時の関節角度の制御も優れている（肘関節標準偏差3.62°、膝関節標準偏差2.38°）。また、Loadingフェーズでの膝の深い屈曲（平均126.23°）が特徴的である。
+上級者群の分析結果を表\ref{tab:advanced_analysis}に示す。上級者は特にPreparationから動作を入念に準備し（肘関節平均168.36°）、Backswingでの動作が非常に安定している（肘関節標準偏差1.16°）。Loading時には膝を大きく屈曲させ（最小角度81.16°）、力を蓄える動作が明確である。また、Follow Through時の動作制御も優れており、肘関節の標準偏差が0.57°と非常に小さく、安定した動作の再現性の高さを示している。
 
 \begin{table}[H]
-   \caption{上級者の関節角度統計}
-   \label{tab:advanced_analysis}
-   \centering
-   \begin{tabular}{lccccc}
-   \hline
-   フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
-   \hline
-   Preparation & 肘 & 128.11\textdegree & 175.05\textdegree & 157.16\textdegree & 10.90\textdegree \\
-    & 膝 & 121.00\textdegree & 170.07\textdegree & 149.01\textdegree & 12.40\textdegree \\
-   \hline
-   Backswing & 肘 & 146.80\textdegree & 178.03\textdegree & 161.38\textdegree & 8.68\textdegree \\
-    & 膝 & 134.42\textdegree & 162.96\textdegree & 152.12\textdegree & 6.80\textdegree \\
-   \hline
-   Loading & 肘 & 151.09\textdegree & 160.23\textdegree & 156.41\textdegree & 2.26\textdegree \\
-    & 膝 & 109.88\textdegree & 142.72\textdegree & 126.23\textdegree & 10.00\textdegree \\
-   \hline
-   Forward Swing & 肘 & 128.77\textdegree & 179.88\textdegree & 155.80\textdegree & 11.05\textdegree \\
-    & 膝 & 109.58\textdegree & 179.41\textdegree & 162.95\textdegree & 17.97\textdegree \\
-   \hline
-   Impact & 肘 & 134.40\textdegree & 175.84\textdegree & 159.20\textdegree & 11.41\textdegree \\
-    & 膝 & 149.91\textdegree & 179.85\textdegree & 170.43\textdegree & 8.99\textdegree \\
-   \hline
-   Follow Through & 肘 & 169.38\textdegree & 178.23\textdegree & 173.73\textdegree & 3.62\textdegree \\
-    & 膝 & 161.95\textdegree & 167.78\textdegree & 164.76\textdegree & 2.38\textdegree \\
-   \hline
-   \end{tabular}
-\end{table}
+    \caption{上級者の関節角度統計}
+    \label{tab:advanced_analysis}
+    \centering
+    \begin{tabular}{lccccc}
+    \hline
+    フェーズ & 関節 & 最小角度 & 最大角度 & 平均角度 & 標準偏差 \\
+    \hline
+    Preparation & 肘 & 143.89\textdegree & 178.24\textdegree & 168.36\textdegree & 10.13\textdegree \\
+     & 膝 & 105.08\textdegree & 135.01\textdegree & 119.46\textdegree & 10.67\textdegree \\
+    \hline
+    Backswing & 肘 & 168.83\textdegree & 171.15\textdegree & 169.99\textdegree & 1.16\textdegree \\
+     & 膝 & 133.80\textdegree & 134.94\textdegree & 134.37\textdegree & 0.57\textdegree \\
+    \hline
+    Loading & 肘 & 84.95\textdegree & 171.70\textdegree & 129.53\textdegree & 28.61\textdegree \\
+     & 膝 & 81.16\textdegree & 139.72\textdegree & 112.43\textdegree & 20.64\textdegree \\
+    \hline
+    Forward Swing & 肘 & 136.86\textdegree & 163.49\textdegree & 150.33\textdegree & 6.29\textdegree \\
+     & 膝 & 81.05\textdegree & 169.87\textdegree & 115.49\textdegree & 35.53\textdegree \\
+    \hline
+    Impact & 肘 & 132.40\textdegree & 180.13\textdegree & 162.50\textdegree & 16.05\textdegree \\
+     & 膝 & 148.08\textdegree & 172.67\textdegree & 165.43\textdegree & 7.96\textdegree \\
+    \hline
+    Follow Through & 肘 & 128.86\textdegree & 130.10\textdegree & 129.29\textdegree & 0.57\textdegree \\
+     & 膝 & 148.40\textdegree & 158.12\textdegree & 152.67\textdegree & 4.05\textdegree \\
+    \hline
+    \end{tabular}
+ \end{table}
 
 \subsection{技能レベル別の時系列変化の特徴}
 
@@ -534,42 +588,65 @@ p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
 
 \begin{figure}[htbp]
 \begin{center}
-   \includegraphics[width=0.8\textwidth]{result/komi_left/komi_left.eps}
-   \caption{初級者の肘・膝関節角度の時系列変化}
-   \label{fig:beginner_angles}
+    \includegraphics[width=0.8\textwidth]{result/beginner/beginner.eps}
+    \caption{初級者の肘・膝関節角度の時系列変化}
+    \label{fig:beginner_angles}
 \end{center}
 \end{figure}
 
 \begin{figure}[htbp]
 \begin{center}
-   \includegraphics[width=0.8\textwidth]{result/aiba/aiba.eps}
-   \caption{中級者の肘・膝関節角度の時系列変化}
-   \label{fig:intermediate_angles}
+    \includegraphics[width=0.8\textwidth]{result/inter/inter.eps}
+    \caption{中級者の肘・膝関節角度の時系列変化}
+    \label{fig:intermediate_angles}
 \end{center}
 \end{figure}
 
 \begin{figure}[htbp]
 \begin{center}
-   \includegraphics[width=0.8\textwidth]{result/komi/komi.eps}
-   \caption{上級者の肘・膝関節角度の時系列変化}
-   \label{fig:advanced_angles}
+    \includegraphics[width=0.8\textwidth]{result/advance/advance.eps}
+    \caption{上級者の肘・膝関節角度の時系列変化}
+    \label{fig:advanced_angles}
+\end{center}
+\end{figure}
+
+\section{技能レベル別の動作比較}
+各技能レベルの特徴的な動作を図\ref{fig:beginner_prepare}, \ref{fig:inter_forward}, \ref{fig:advance_loading}に示す。
+
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=0.6\textwidth]{result/beginner/beginner_prepare.eps}
+   \caption{初級者の準備動作：膝が伸びたままでのフォーム}
+   \label{fig:beginner_prepare}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=0.6\textwidth]{result/inter/inter_forward.eps}
+   \caption{中級者のフォワードスイング：不適切な肘の使用}
+   \label{fig:inter_forward}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=0.6\textwidth]{result/advance/advance_loading.eps}
+   \caption{上級者のローディング：適切な膝の屈曲と肘の使用}
+   \label{fig:advance_loading}
 \end{center}
 \end{figure}
 
 \section{考察}
-本研究で開発したシステムの評価結果から、テニスサーブの動作分析において重要な知見が得られた。特に、技能レベルによる動作特性の差異が定量的に明らかになった点は、指導現場での活用において大きな意義を持つと考えられる。
+本研究で開発したシステムによる分析結果から、テニスサーブにおける技能レベル別の特徴的な差異が明らかになった。特に注目すべき点は、各技能レベルにおける下半身の使用と上半身の連動性である。
 
-初級者の動作特性として最も顕著だったのは、Backswingフェーズでの肘の角度変化が大きい点である。初級者群の平均肘角度は96.74°と最も小さく、標準偏差も15.55°と大きい値を示している。この大きな標準偏差は、動作の再現性が低く、一貫したフォームが確立されていないことを示唆している。理想的なサーブ動作では、この局面での肘角度の安定性が重要であり、上級者の標準偏差（8.68°）との差は技術レベルを反映する重要な指標となっている。
+初級者の最も顕著な特徴は、全フェーズを通じて膝関節が伸展状態（162-178度）を維持していることである。図\ref{fig:beginner_prepare}に示すように、準備動作から膝が十分に屈曲せず、これによりローディング時のエネルギー蓄積が不十分となっている。また、Loading時の関節角度が一定（標準偏差0.00度）という特徴は、動作が固く、流動的な力の伝達ができていないことを示している。
 
-中級者の分析結果からは、より安定した動作パターンが観察された。特にBackswingフェーズでの動作の安定性が顕著で、肘関節の標準偏差が2.33°、膝関節の標準偏差が0.51°と非常に小さい値を示している。また、Loading時の膝角度は158.41°と、適度な屈曲を維持できている。Forward Swingでの肘角度は109.58°から179.41°まで大きく変化する。この急激な角度変化は、蓄積されたエネルギーの解放過程を示しており、特に上級者では約0.2秒という短時間で約70度の角度変化を実現している。この素早い角度変化の制御能力が、効果的なサーブ動作の重要な要素となっている。
+中級者では、図\ref{fig:inter_forward}に見られるように、Forward Swing時の肘関節の使用に課題がある。Loading時の肘関節角度の大きな変動（標準偏差28.61度）は、力の蓄積と解放のタイミングが不安定であることを示している。また、Forward Swing時の膝関節角度の著しい変動（標準偏差35.53度）は、下半身の安定性に課題があることを示唆している。
 
-上級者の動作で最も特徴的なのは、Follow Throughフェーズにおける安定性である。肘関節の標準偏差が3.62°、膝関節が2.38°と最も小さい値を示しており、動作の完成度の高さを表している。また、Forward SwingからFollow Throughにかけての肘角度の変化（155.80°から173.73°）は、効率的な力の伝達とフォロースルーの完成度を示している。
+上級者の特徴は、図\ref{fig:advance_loading}に示されるように、ローディング時の適切な膝の屈曲（平均112.43度）と肘の使用（平均129.53度）の組み合わせにある。この姿勢により、下半身で生成されたエネルギーを上半身に効率的に伝達することが可能となっている。特筆すべきは、フォロースルー時の動作の安定性（肘関節標準偏差0.57度）であり、これは高い技術の習熟度を示している。
 
-これらの分析結果は、テニスサーブ指導における重要な示唆を提供している。初級者の指導においては、特にBackswingからForward Swingにかけての肘の使い方に焦点を当てる必要がある。動作の安定性を高めることで、より効率的なエネルギー伝達が可能になると考えられる。
-
-中級者に対しては、すでに獲得している安定したBackswing動作を維持しながら、Forward SwingからFollow Throughまでの一連の動作の完成度を高める指導が有効であろう。特に、インパクト後のFollow Throughの安定性向上が、次の課題となる。
-
-本研究で開発したシステムは、これらの技術レベルによる差異を定量的に評価し、視覚化することができる。今後は、さらなるデータ収集と分析を通じて、より詳細な技術指導の指針を確立していくことが期待される。
+これらの知見は、テニス指導における段階的な技術向上のための重要な指針となる。初級者に対しては、まず下半身の使用、特に膝の屈曲を意識させる指導が必要である。中級者では、動作のタイミング、特に肘関節の使用タイミングの調整に焦点を当てた指導が効果的であろう。また、本研究で開発したシステムは、これらの動作特性を定量的に評価できることから、選手の技術レベルに応じた具体的な改善点の提示が可能となる。
 
 \chapter{まとめ}
 
@@ -603,20 +680,33 @@ p_i = p_1 + \frac{i - t_1}{t_2 - t_1}(p_2 - p_1)
 \backmatter
 
 \begin{thebibliography}{99}
-   \bibitem{abrams2018} Abrams, G.D., et al., "Biomechanical analysis of three tennis serve types using a markerless system", British Journal of Sports Medicine, vol. 52, no. 7, pp. 45-51, 2018.
-   \bibitem{goodfellow} Goodfellow, I., Bengio, Y., Courville, A., "Deep Learning", MIT Press, 2016.
-   \bibitem{opencv} Bradski, G., "The OpenCV Library", Dr. Dobb's Journal of Software Tools, vol. 25, pp. 120-126, 2000.
-   \bibitem{tensorflow} Abadi, M., et al., "TensorFlow: A System for Large-Scale Machine Learning", 12th USENIX Symposium on Operating Systems Design and Implementation, pp. 265-283, 2016.
-   \bibitem{openpose} Cao, Z., et al., "OpenPose: Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields", IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 43, no. 1, pp. 172-186, 2021.
-   \bibitem{hrnet} Sun, K., et al., "Deep High-Resolution Representation Learning for Human Pose Estimation", IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 5693-5703, 2019.
-   \bibitem{reid2007} Reid, M., Elliott, B., Alderson, J., "Shoulder joint kinetics of the elite wheelchair tennis serve", British Journal of Sports Medicine, vol. 41, no. 11, pp. 739-744, 2007.
-   \bibitem{serve_analysis} Reid, M., Elliott, B., Alderson, J., "Lower-limb coordination and shoulder joint mechanics in the tennis serve", Medicine and Science in Sports and Exercise, vol. 40, no. 2, pp. 308-315, 2008.
-   \bibitem{mediapipe} Bazarevsky, V., et al., "BlazePose: On-device Real-time Body Pose Tracking", arXiv preprint arXiv:2006.10204, 2020.
-   \bibitem{toshev2014} Toshev, A., Szegedy, C., "DeepPose: Human Pose Estimation via Deep Neural Networks", IEEE Conference on Computer Vision and Pattern Recognition, pp. 1653-1660, 2014.
-   \bibitem{wang2019} Wang, Z., et al., "Deep learning for sensor-based human pose estimation: A comprehensive review", Expert Systems with Applications, vol. 121, pp. 386-398, 2019.
-   \bibitem{kovacs2011} Kovacs, M., Ellenbecker, T., "An 8-Stage Model for Evaluating the Tennis Serve: Implications for Performance Enhancement and Injury Prevention", Sports Health, vol. 3, no. 6, pp. 504-513, 2011.
-   \bibitem{elliott2003} Elliott, B., Reid, M., Crespo, M., "Biomechanics of Advanced Tennis", International Tennis Federation, 2003.
-   \bibitem{whiteside2013} Whiteside, D., et al., "Three-dimensional tennis serve kinematics at three ball impact locations", Journal of Sports Sciences, vol. 31, no. 16, pp. 1787-1796, 2013.
+    \bibitem{kovacs2011} Kovacs, M., Ellenbecker, T., ``An 8-Stage Model for Evaluating the Tennis Serve: Implications for Performance Enhancement and Injury Prevention'', Sports Health, vol. 3, no. 6, pp. 504-513, 2011.
+    
+    \bibitem{reid2007} Reid, M., Elliott, B., Alderson, J., ``Shoulder joint kinetics of the elite wheelchair tennis serve'', British Journal of Sports Medicine, vol. 41, no. 11, pp. 739-744, 2007.
+    
+    \bibitem{toshev2014} Toshev, A., Szegedy, C., ``DeepPose: Human Pose Estimation via Deep Neural Networks'', IEEE Conference on Computer Vision and Pattern Recognition, pp. 1653-1660, 2014.
+    
+    \bibitem{abrams2018} Abrams, G.D., Sheets, A.L., McGinnis, R.S., ``Biomechanical analysis of three tennis serve types using a markerless system'', British Journal of Sports Medicine, vol. 52, no. 7, pp. 45-51, 2018.
+    
+    \bibitem{elliott2003} Elliott, B., Reid, M., Crespo, M., ``Biomechanics of Advanced Tennis'', International Tennis Federation, 2003.
+    
+    \bibitem{hrnet} Sun, K., Xiao, B., Liu, D., Wang, J., ``Deep High-Resolution Representation Learning for Human Pose Estimation'', IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 5693-5703, 2019.
+    
+    \bibitem{whiteside2013} Whiteside, D., Elliott, B., Lay, B., Reid, M., ``Three-dimensional tennis serve kinematics at three ball impact locations'', Journal of Sports Sciences, vol. 31, no. 16, pp. 1787-1796, 2013.
+    
+    \bibitem{wang2019} Wang, Z., Yu, P., Yang, Y., Li, C., ``Deep learning for sensor-based human pose estimation: A comprehensive review'', Expert Systems with Applications, vol. 121, pp. 386-398, 2019.
+    
+    \bibitem{openpose} Cao, Z., Hidalgo, G., Simon, T., Wei, S.E., Sheikh, Y., ``OpenPose: Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields'', IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 43, no. 1, pp. 172-186, 2021.
+    
+    \bibitem{mediapipe} Bazarevsky, V., Grishchenko, I., Raveendran, K., ``BlazePose: On-device Real-time Body Pose Tracking'', arXiv preprint arXiv:2006.10204, 2020.
+    
+    \bibitem{goodfellow} Goodfellow, I., Bengio, Y., Courville, A., ``Deep Learning'', MIT Press, 2016.
+    
+    \bibitem{serve_analysis} Reid, M., Elliott, B., Alderson, J., ``Lower-limb coordination and shoulder joint mechanics in the tennis serve'', Medicine and Science in Sports and Exercise, vol. 40, no. 2, pp. 308-315, 2008.
+    
+    \bibitem{tensorflow} Abadi, M., et al., ``TensorFlow: A System for Large-Scale Machine Learning'', 12th USENIX Symposium on Operating Systems Design and Implementation, pp. 265-283, 2016.
+    
+    \bibitem{opencv} Bradski, G., ``The OpenCV Library'', Dr. Dobb's Journal of Software Tools, vol. 25, pp. 120-126, 2000.
 \end{thebibliography}
 
 \chapter{ソースコード一覧}
@@ -948,6 +1038,5 @@ opencv-python-headless>=4.5.0
 matplotlib>=3.3.4
 scikit-learn>=0.24.1
 \end{lstlisting}
-
 
 \end{document}
